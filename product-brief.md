@@ -286,3 +286,47 @@ Future Vision
   2. MVP validation - you listed 4 query types (factual, open-ended, vague, meta). Do you have a rough sense of how many test queries you'd want to run to feel confident the MVP is working, or is it more of a "I'll know it when I see it" thing?
 
     lets start with 50 test queries per type
+
+
+1. For the Learner - do you imagine them arriving at a hosted/pre-indexed instance, or would they always need to set up locally? Is the "zero setup" querying experience assuming data is already indexed?
+
+  as a learner/developer I have the option to run the application locally
+
+  when I start the application locally, backend API layer in a docker image and frontend PWA in another docker image, it should be ready to use
+
+  indexing the wikipedia dump is an expensive process, I should be able to do this separately through a CLI command
+
+  the indexing process will go through the following process
+    - read and parse the wikipedia dump
+    - create embeddings
+    - save them into qdrant, with article metadata
+  the indexing process will be done in streams, and we can restart the index where we left off if stopped or paused
+
+2. For the Operator persona - is this always the same person as the Builder (you, setting things up for yourself), or could it be someone deploying WikiRAG for a team/class to use?
+
+  anyone should be able to setup the application and the setup will be seggregated into layers
+    - data layer (wikipedia reading, parsing, embedding and inserting into qdrant)
+    - API layer, run a docker container to start the API backend layer
+    - PWA layer, run a docker container to start the PWA frontend layer
+
+
+
+1. SPA or MPA? - Given it's a PWA with two main modes (single query + comparison), this is almost certainly an SPA. Can you confirm?
+
+  SPA using ReactJS
+
+2. Browser support? - Since this is a learning/portfolio project, do you want to support all major browsers (Chrome, Firefox, Safari, Edge), or is Chrome-only fine for MVP?
+
+  I want to support Chrome, Chromium, Firefox, Brave
+
+3. SEO needed? - This is a locally-deployed tool, not a public website. I'm assuming SEO is irrelevant here. Correct?
+
+  this is not required
+
+4. Real-time? - The query responses could take up to 60s. Are you thinking of streaming the response as it generates (like ChatGPT does), or just a loading state until the full response is ready?
+
+  yes, I want to apply streaming of responses
+
+5. Accessibility? - Any WCAG compliance targets, or basic accessibility (keyboard nav, screen reader basics) is sufficient?
+
+  basic accessibility is sufficient
