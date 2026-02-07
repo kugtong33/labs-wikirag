@@ -220,6 +220,14 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 - Two parallel streams in comparison mode must render independently
 - PWA service worker caches static assets; API responses are dynamic and not cached
 
+### Reproducibility
+
+- **Embedding model versioning:** The system must record the exact embedding model identifier used during indexing (e.g., model name + version) so that retrieval results can be reproduced
+- **Wikipedia dump versioning:** Each indexing run must record the Wikipedia dump date/identifier, enabling users to correlate results with a specific corpus snapshot
+- **Deterministic retrieval:** Given the same query, embedding model, and indexed corpus, similarity search results must be identical across runs
+- **LLM generation seeds:** Where supported by the generation provider, seed parameters should be configurable to reduce non-determinism in generated responses
+- **Configuration capture:** Query parameters (technique, embedding strategy, model settings) must be logged alongside results to enable reproducible comparisons
+
 ### Docker Composition
 
 - API container, PWA container, and Qdrant container orchestrated via docker-compose
@@ -258,7 +266,7 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 
 - **FR6:** Users can submit natural language queries and receive generated responses
 - **FR7:** Users can view responses as they are generated via streaming output
-- **FR8:** The system can handle factual, open-ended, vague, and meta-question query types
+- **FR8:** The system can process and return responses for factual, open-ended, vague, and meta-question query types, each producing distinguishable outputs across RAG techniques
 - **FR9:** Users can submit queries immediately using default configuration without prior setup
 
 ### Comparison Mode
@@ -277,31 +285,31 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 
 - **FR16:** Operators can index the full English Wikipedia dump via a CLI command
 - **FR17:** The CLI can parse Wikipedia dump articles and extract paragraphs with metadata (article title, section, position)
-- **FR18:** The CLI can create vector embeddings for each paragraph using OpenAI
-- **FR19:** The CLI can insert embeddings with metadata into Qdrant
+- **FR18:** The CLI can create vector embeddings for each paragraph using the configured embedding provider
+- **FR19:** The CLI can insert embeddings with metadata into the vector database
 - **FR20:** The indexing process can stream through the dump incrementally (not load all into memory)
 - **FR21:** Operators can pause and resume indexing from where it left off
-- **FR22:** Operators can select an embedding strategy via CLI flags
+- **FR22:** Operators can select an embedding strategy via CLI parameters
 
 ### Vector Storage & Retrieval
 
-- **FR23:** The system can store and retrieve vector embeddings from Qdrant
+- **FR23:** The system can store and retrieve vector embeddings from the vector database
 - **FR24:** The system can perform similarity searches against the Wikipedia corpus
 - **FR25:** The system can return retrieved context with associated article metadata
 
 ### Web Application
 
-- **FR26:** Users can access the application as an installable PWA via browser
+- **FR26:** Users can access the application as a browser-installable progressive web application
 - **FR27:** Users can switch between single query mode and comparison mode
-- **FR28:** Users can select RAG techniques from a dropdown interface
+- **FR28:** Users can select RAG techniques from a selection interface
 - **FR29:** The application can load with sensible defaults requiring no configuration
 
 ### Infrastructure & Deployment
 
-- **FR30:** Operators can start the API layer via a Docker container
-- **FR31:** Operators can start the PWA layer via a Docker container
-- **FR32:** Operators can start all services (API, PWA, Qdrant) via docker-compose
-- **FR33:** The API layer can connect to Qdrant for vector operations
+- **FR30:** Operators can start the API layer via a container
+- **FR31:** Operators can start the frontend layer via a container
+- **FR32:** Operators can start all services (API, frontend, vector database) via a single orchestration command
+- **FR33:** The API layer can connect to the vector database for vector operations
 - **FR34:** The PWA layer can connect to the API layer for query submission and streaming
 
 ## Non-Functional Requirements
@@ -310,9 +318,9 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 
 - **NFR1:** Single query responses must begin streaming the first chunk within 10 seconds of submission
 - **NFR2:** End-to-end query response must complete within 60 seconds in local Docker environment
-- **NFR3:** Comparison mode must stream two responses in parallel without one blocking the other
+- **NFR3:** Comparison mode must stream two responses in parallel; each stream must begin delivering chunks independently within its own timeout window (neither stream waits for the other to start or complete)
 - **NFR4:** PWA initial load must complete within 3 seconds on localhost
-- **NFR5:** RAG technique switching (dropdown selection) must respond instantly (client-side, no server round-trip)
+- **NFR5:** RAG technique switching must update the UI within 100ms (client-side operation, no server round-trip required)
 - **NFR6:** Quality scoring must complete within 15 seconds per response and not block response streaming
 - **NFR7:** Wikipedia indexing CLI must process the dump as a stream without loading the full dump into memory
 
@@ -320,18 +328,18 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 
 - **NFR8:** OpenAI API keys must not be exposed in frontend code or client-side bundles
 - **NFR9:** API keys and secrets must be configurable via environment variables, not hardcoded
-- **NFR10:** The API layer must not expose internal system details in error responses
+- **NFR10:** The API layer must not expose stack traces, file paths, database connection strings, or dependency versions in error responses
 
 ### Integration
 
 - **NFR11:** The system must support the standard Wikipedia dump XML format (latest English dump from dumps.wikimedia.org)
-- **NFR12:** The system must use the official Qdrant TypeScript client for all vector operations
-- **NFR13:** The system must use the OpenAI API for embedding generation (text-embedding model)
-- **NFR14:** The API and PWA layers must communicate via well-defined HTTP/SSE endpoints
+- **NFR12:** The system must use the official vector database client library for all vector operations
+- **NFR13:** The system must use the configured embedding API for embedding generation
+- **NFR14:** The API and frontend layers must communicate via well-defined streaming-capable endpoints
 - **NFR15:** All three layers (data CLI, API, PWA) must be independently deployable and operable
 
 ### Accessibility
 
-- **NFR16:** The application must support keyboard navigation for all primary interactions
+- **NFR16:** The application must support keyboard navigation for query submission, technique selection, mode switching, and results browsing
 - **NFR17:** The application must use semantic HTML elements for screen reader compatibility
-- **NFR18:** Text must maintain sufficient contrast ratios for readability
+- **NFR18:** Text must maintain WCAG 2.1 AA contrast ratios (minimum 4.5:1 for normal text, 3:1 for large text)
