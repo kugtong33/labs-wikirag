@@ -330,3 +330,17 @@ Future Vision
 5. Accessibility? - Any WCAG compliance targets, or basic accessibility (keyboard nav, screen reader basics) is sufficient?
 
   basic accessibility is sufficient
+
+
+1. 5 RAG techniques for MVP - firm, or could you validate the architecture with fewer (naive + corrective + HyDE) and add simple/self-RAG as fast-follows?
+
+  we can separate RAG techniques per epic if needed, the MVP will have the 5 RAG techniques
+
+
+2. Quality scoring in MVP? - Your brief defers it to v2, but success criteria mention "benchmarked numbers." Should basic scoring be in MVP?
+
+  lets move basic scoring to MVP
+
+3. Biggest technical risk - Could you validate with a Wikipedia subset first (e.g., ~6K featured articles) and scale to full dump in Phase 2?
+
+  no, lets start with the full dump

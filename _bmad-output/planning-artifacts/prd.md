@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [step-01-init, step-02-discovery, step-03-success, step-04-journeys, step-05-domain, step-06-innovation, step-07-project-type]
+stepsCompleted: [step-01-init, step-02-discovery, step-03-success, step-04-journeys, step-05-domain, step-06-innovation, step-07-project-type, step-08-scoping, step-09-functional, step-10-nonfunctional, step-11-polish, step-12-complete]
 inputDocuments: [product-brief-labs-wikirag-2026-02-05.md]
 workflowType: 'prd'
 documentCounts:
@@ -19,13 +19,27 @@ classification:
 **Author:** kugtong33
 **Date:** 2026-02-07
 
+## Executive Summary
+
+WikiRAG is a modular RAG exploration platform that uses the full English Wikipedia as its knowledge base. It provides a plugin-style architecture where different RAG techniques can be swapped in, compared side-by-side, and evaluated with quality scores against real-world queries.
+
+**Core Differentiator:** Breadth of RAG techniques, real-world scale corpus, and side-by-side comparison in a single platform - enabling practitioners to develop genuine intuition about which techniques suit which problems.
+
+**Target Users:**
+- **Learners** - Developers exploring RAG concepts through hands-on experimentation
+- **Evaluators** - Researchers making data-backed decisions about RAG technique selection
+- **Contributors** - Developers extending the platform with new RAG modules via adapter interfaces
+- **Operators** - Anyone setting up and deploying the platform locally
+
+**Tech Stack:** TypeScript throughout. Mastra framework (primary), LangChain.js (gap-filling), Qdrant (vector storage), OpenAI (embeddings), React SPA (PWA), Docker.
+
 ## Success Criteria
 
 ### User Success
 
-- Users observe **experiential differences** between RAG techniques on the same query - visible differences in response accuracy, relevance, and structure that can be seen and felt
-- Users see **technical differences** backed by benchmarked quality scores per query (context relevance, context recall, groundedness, answer relevance, answer correctness)
-- The comparison mode produces an "aha!" moment: e.g., corrective RAG fixes an answer that naive RAG got wrong, or HyDE handles a vague query that simple RAG fails on
+- Users observe experiential differences between RAG techniques on the same query - visible differences in response accuracy, relevance, and structure
+- Users see technical differences backed by benchmarked quality scores per query (context relevance, context recall, groundedness, answer relevance, answer correctness)
+- Comparison mode produces clear "aha!" moments: e.g., corrective RAG fixes an answer that naive RAG got wrong, or HyDE handles a vague query that simple RAG fails on
 - Default configuration allows immediate querying with zero setup
 - RAG technique selection is straightforward via dropdown
 
@@ -35,7 +49,6 @@ classification:
 - Working, demonstrable proof-of-concept for personal portfolio
 - Conceptual mastery sufficient to apply RAG techniques in other projects
 - New RAG modules can be added via adapter pattern without modifying core code
-- Community adoption is organic, not a goal
 
 ### Technical Success
 
@@ -51,7 +64,6 @@ classification:
 |---------|--------|-------------|
 | RAG techniques (MVP) | 5 | Naive, simple, corrective, HyDE, self-RAG |
 | RAG techniques (total) | 9 | + adaptive, speculative, advanced, branched |
-| Golden dataset queries | 200 | 50 per type (factual, open-ended, vague, meta) |
 | Response time | < 60s | End-to-end in local Docker |
 | Embedding strategies (MVP) | 1 | Per-paragraph with metadata |
 | Embedding strategies (total) | 3 | + optimal chunking, per-document |
@@ -59,25 +71,36 @@ classification:
 
 ## Product Scope
 
-### MVP - Minimum Viable Product
+### MVP (Phase 1)
 
-- **RAG Pipeline:** Plugin-style modular architecture with adapter interfaces (query, pre-retrieval, retrieval, post-retrieval, generation)
-- **RAG Techniques:** Naive, simple, corrective, HyDE, self-RAG
-- **Data Ingestion:** CLI for indexing full English Wikipedia, per-paragraph embedding with metadata (article, section, position), OpenAI embeddings, Qdrant storage
-- **Web UI:** PWA with single-query mode (dropdown technique selection) and comparison mode (2 techniques side-by-side)
-- **Defaults:** Pre-configured so first-time users can query immediately
-- **Validation:** 200 golden dataset queries (50 per query type)
+**MVP Approach:** Platform MVP - build the modular pipeline architecture first, then incrementally add RAG techniques across epics.
 
-### Growth Features (Post-MVP)
+**Resource:** Solo developer (kugtong33), TypeScript full-stack.
+
+| Capability | Detail |
+|-----------|--------|
+| RAG Pipeline Architecture | Plugin-style adapters at each stage (query, pre-retrieval, retrieval, post-retrieval, generation) |
+| RAG Techniques (5) | Naive, simple, corrective, HyDE, self-RAG (delivered incrementally across epics) |
+| Data Ingestion | CLI for full English Wikipedia dump, per-paragraph embedding with metadata, streaming + resume |
+| Vector Storage | Qdrant with OpenAI embeddings |
+| Web UI (PWA) | React SPA, single query mode, comparison mode (2 techniques), streaming responses |
+| API Layer | TypeScript API with streaming endpoints (SSE/WebSocket) |
+| Basic Quality Scoring | LLM-as-a-Judge scoring per query displayed in UI |
+| Docker Infrastructure | docker-compose with API, PWA, and Qdrant containers |
+| Default Configuration | Zero-setup querying once services are running |
+
+**Epic Delivery Strategy:** RAG techniques delivered incrementally - pipeline architecture and naive RAG first, subsequent techniques in follow-on epics. All 5 must be complete for MVP to be considered done.
+
+### Growth (Phase 2)
 
 - 4 additional RAG techniques (adaptive, speculative, advanced, branched)
-- Per-query quality scoring displayed in UI (LLM-as-a-Judge)
 - Batch evaluation via CLI (RAGAS, LangChain/LangSmith, TruLens)
+- Golden dataset evaluation (200 queries: 50 per type - factual, open-ended, vague, meta)
 - Additional embedding strategies (optimal chunking, per-document)
 - Open-source embedding model alternatives
 - Multi-comparison mode (3+ techniques simultaneously)
 
-### Vision (Future)
+### Vision (Phase 3)
 
 - Integration with other vector databases (Pinecone, Weaviate, Chroma, pgvector)
 - Multimodal RAG support (images, audio, video)
@@ -111,7 +134,7 @@ classification:
 
 **Climax:** The side-by-side results confirm some hypotheses and shatter others. Corrective RAG does fix errors on complex factual questions, but on simple ones the overhead adds latency without improving accuracy. She discovers that self-RAG unexpectedly outperforms HyDE on a subset of vague queries where the vagueness is about phrasing rather than concept.
 
-**Resolution:** Priya documents her findings, exports the quality scores, and presents a data-backed recommendation to her team: use adaptive RAG (once available in v2) as the default, with HyDE as a fallback for concept-vague queries.
+**Resolution:** Priya documents her findings and presents a data-backed recommendation to her team: use adaptive RAG (once available in v2) as the default, with HyDE as a fallback for concept-vague queries.
 
 **Capabilities revealed:** Comparison mode, quality scoring per query, response timing, systematic multi-query testing.
 
@@ -121,9 +144,9 @@ classification:
 
 **Opening Scene:** Marcus clones the repo and studies the adapter interface. He sees the plugin-style pipeline with clear boundaries at each stage (query, pre-retrieval, retrieval, post-retrieval, generation).
 
-**Rising Action:** Marcus creates a new RAG module following the adapter pattern. He implements the graph-based retrieval strategy by creating adapters for the retrieval and post-retrieval stages, while reusing the existing query and generation adapters. The architecture lets him focus only on what's unique about graph RAG.
+**Rising Action:** Marcus creates a new RAG module following the adapter pattern. He implements the graph-based retrieval strategy by creating adapters for the retrieval and post-retrieval stages, while reusing the existing query and generation adapters.
 
-**Climax:** Marcus registers his new module, starts the application, and selects "Graph RAG" from the dropdown. It works. He switches to comparison mode, pitting his graph RAG against the existing techniques on knowledge-graph-heavy queries like "How is Albert Einstein connected to the Manhattan Project?"
+**Climax:** Marcus registers his new module, starts the application, and selects "Graph RAG" from the dropdown. It works. He switches to comparison mode, pitting his graph RAG against existing techniques on knowledge-graph-heavy queries like "How is Albert Einstein connected to the Manhattan Project?"
 
 **Resolution:** His graph RAG module outperforms others on relationship-based queries. He submits a PR. The module was added without modifying any core code - just implementing the adapter interfaces and registering the module.
 
@@ -149,37 +172,32 @@ classification:
 |---------|--------------------------|
 | Learner | Default config, dropdown selection, single query, comparison mode, quality scores, PWA |
 | Evaluator | Comparison mode, quality scoring, response timing, systematic multi-query testing |
-| Contributor | Adapter interfaces, module registration, pipeline stage reuse, hot-reload or restart |
+| Contributor | Adapter interfaces, module registration, pipeline stage reuse |
 | Operator | CLI indexing (stream + resume), Docker containers (API + PWA), Qdrant setup, embedding strategy selection |
 
 **Cross-cutting requirements:**
-- Three-layer architecture (data/API/PWA) must be independently operable
+- Three-layer architecture (data CLI / API / PWA) must be independently operable
 - Indexing must support streaming and resume for the 22GB+ Wikipedia dump
 - PWA must work immediately once API + Qdrant are running
 - Adapter pattern must allow new modules without core code changes
 
-## Web App Specific Requirements
+## Technical Architecture
 
-### Project-Type Overview
+### Three-Layer Architecture
 
-WikiRAG is a three-layer web application: a React SPA (PWA-capable) frontend, a separate TypeScript API backend, and a CLI for data ingestion. The frontend and API communicate over HTTP/WebSocket, with streaming responses for real-time query output.
-
-### Technical Architecture Considerations
-
-**Frontend Architecture:**
+**Frontend (PWA):**
 - React SPA with PWA capabilities (installable via browser)
 - Two primary views: single query mode and comparison mode
-- Streaming response display (SSE or WebSocket) for real-time output as RAG pipeline executes
+- Streaming response display (SSE or WebSocket)
 - Dropdown-based RAG technique selection
-- Default configuration pre-loaded - no setup required to start querying
+- Default configuration pre-loaded
 
-**API Architecture:**
+**API Backend:**
 - Separate TypeScript API layer (Docker containerized)
 - Streaming endpoint support for real-time response delivery
 - RESTful endpoints for technique listing, configuration, and query submission
-- WebSocket or SSE for streaming query responses back to the frontend
 
-**CLI Architecture:**
+**Data Ingestion CLI:**
 - Standalone CLI for Wikipedia dump indexing
 - Streaming pipeline: read/parse dump → create embeddings → insert into Qdrant
 - Resume capability for interrupted indexing sessions
@@ -193,39 +211,127 @@ WikiRAG is a three-layer web application: a React SPA (PWA-capable) frontend, a 
 | Chromium | Full support |
 | Firefox | Full support |
 | Brave | Full support |
-| Safari | Not targeted |
-| Edge | Not targeted |
 
-### Responsive Design
+### Design Considerations
 
-- Desktop-first design (primary use case is seated exploration/comparison)
-- Comparison mode requires sufficient viewport width for side-by-side display
+- Desktop-first (comparison mode requires sufficient viewport width for side-by-side display)
 - Basic responsive support for tablet viewports (single query mode)
-- Mobile not a priority given the exploration/research nature of the tool
+- SSE preferred for streaming (simpler for unidirectional); WebSocket if bidirectional needed later
+- Two parallel streams in comparison mode must render independently
+- PWA service worker caches static assets; API responses are dynamic and not cached
 
-### Performance Targets
+### Docker Composition
 
-| Metric | Target |
-|--------|--------|
-| Query response (end-to-end) | < 60s |
-| First stream chunk | As fast as possible (streaming starts before full response) |
-| PWA initial load | < 3s |
-| Technique switching | Instant (client-side) |
-| Comparison mode | 2 parallel streams rendered simultaneously |
+- API container, PWA container, and Qdrant container orchestrated via docker-compose
+- All three layers independently deployable
+
+## Risk Mitigation
+
+### Technical Risks
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Full Wikipedia embedding cost (OpenAI API) | High | Budget estimation before indexing; streaming + resume spreads cost over time |
+| Qdrant storage at Wikipedia scale | Medium | Monitor storage; Qdrant handles large collections natively |
+| Streaming complexity (2 parallel RAG pipelines) | Medium | Prove streaming with single query first; add parallel streams in comparison epic |
+| Adapter interface design | High | Design interfaces with all 9 techniques in mind upfront |
+
+### Resource Risks
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Solo developer bandwidth | Medium | Epic-based delivery; each technique is independently shippable |
+| OpenAI API dependency | Low | Core dependency; open-source alternatives deferred to Phase 2 |
+| Framework limitations (Mastra) | Medium | LangChain.js as fallback for gaps |
+
+## Functional Requirements
+
+### RAG Pipeline & Technique Management
+
+- **FR1:** Users can select a RAG technique from a list of available techniques before submitting a query
+- **FR2:** The system can execute a query through the selected RAG technique's pipeline stages (query, pre-retrieval, retrieval, post-retrieval, generation)
+- **FR3:** Contributors can add new RAG technique modules by implementing adapter interfaces without modifying core pipeline code
+- **FR4:** The system can register and discover RAG technique modules at startup
+- **FR5:** Contributors can reuse existing pipeline stage adapters when creating new RAG technique modules
+
+### Query & Response
+
+- **FR6:** Users can submit natural language queries and receive generated responses
+- **FR7:** Users can view responses as they are generated via streaming output
+- **FR8:** The system can handle factual, open-ended, vague, and meta-question query types
+- **FR9:** Users can submit queries immediately using default configuration without prior setup
+
+### Comparison Mode
+
+- **FR10:** Users can select two RAG techniques and run the same query through both simultaneously
+- **FR11:** Users can view side-by-side results from two RAG techniques for the same query
+- **FR12:** The system can stream responses from two parallel RAG pipelines independently
+
+### Quality Scoring
+
+- **FR13:** The system can score each query response across five quality dimensions (context relevance, context recall, groundedness, answer relevance, answer correctness)
+- **FR14:** Users can view quality scores alongside each query response
+- **FR15:** Users can compare quality scores between techniques in comparison mode
+
+### Data Ingestion & Indexing
+
+- **FR16:** Operators can index the full English Wikipedia dump via a CLI command
+- **FR17:** The CLI can parse Wikipedia dump articles and extract paragraphs with metadata (article title, section, position)
+- **FR18:** The CLI can create vector embeddings for each paragraph using OpenAI
+- **FR19:** The CLI can insert embeddings with metadata into Qdrant
+- **FR20:** The indexing process can stream through the dump incrementally (not load all into memory)
+- **FR21:** Operators can pause and resume indexing from where it left off
+- **FR22:** Operators can select an embedding strategy via CLI flags
+
+### Vector Storage & Retrieval
+
+- **FR23:** The system can store and retrieve vector embeddings from Qdrant
+- **FR24:** The system can perform similarity searches against the Wikipedia corpus
+- **FR25:** The system can return retrieved context with associated article metadata
+
+### Web Application
+
+- **FR26:** Users can access the application as an installable PWA via browser
+- **FR27:** Users can switch between single query mode and comparison mode
+- **FR28:** Users can select RAG techniques from a dropdown interface
+- **FR29:** The application can load with sensible defaults requiring no configuration
+
+### Infrastructure & Deployment
+
+- **FR30:** Operators can start the API layer via a Docker container
+- **FR31:** Operators can start the PWA layer via a Docker container
+- **FR32:** Operators can start all services (API, PWA, Qdrant) via docker-compose
+- **FR33:** The API layer can connect to Qdrant for vector operations
+- **FR34:** The PWA layer can connect to the API layer for query submission and streaming
+
+## Non-Functional Requirements
+
+### Performance
+
+- **NFR1:** Single query responses must begin streaming the first chunk within 10 seconds of submission
+- **NFR2:** End-to-end query response must complete within 60 seconds in local Docker environment
+- **NFR3:** Comparison mode must stream two responses in parallel without one blocking the other
+- **NFR4:** PWA initial load must complete within 3 seconds on localhost
+- **NFR5:** RAG technique switching (dropdown selection) must respond instantly (client-side, no server round-trip)
+- **NFR6:** Quality scoring must complete within 15 seconds per response and not block response streaming
+- **NFR7:** Wikipedia indexing CLI must process the dump as a stream without loading the full dump into memory
+
+### Security
+
+- **NFR8:** OpenAI API keys must not be exposed in frontend code or client-side bundles
+- **NFR9:** API keys and secrets must be configurable via environment variables, not hardcoded
+- **NFR10:** The API layer must not expose internal system details in error responses
+
+### Integration
+
+- **NFR11:** The system must support the standard Wikipedia dump XML format (latest English dump from dumps.wikimedia.org)
+- **NFR12:** The system must use the official Qdrant TypeScript client for all vector operations
+- **NFR13:** The system must use the OpenAI API for embedding generation (text-embedding model)
+- **NFR14:** The API and PWA layers must communicate via well-defined HTTP/SSE endpoints
+- **NFR15:** All three layers (data CLI, API, PWA) must be independently deployable and operable
 
 ### Accessibility
 
-- Basic accessibility: keyboard navigation, semantic HTML, screen reader basics
-- No WCAG compliance target for MVP
-- Sufficient contrast and readable typography
-
-### SEO Strategy
-
-- Not applicable - locally deployed application, not a public website
-
-### Implementation Considerations
-
-- **Streaming protocol choice:** SSE (Server-Sent Events) or WebSocket for streaming responses from API to frontend. SSE is simpler for unidirectional streaming; WebSocket if bidirectional communication is needed later
-- **Comparison mode streaming:** Two parallel streams must render independently without blocking each other
-- **PWA service worker:** Cache static assets for fast reload; API responses are dynamic and not cached
-- **Docker composition:** API and PWA in separate containers, Qdrant as a third container, all orchestrated via docker-compose
+- **NFR16:** The application must support keyboard navigation for all primary interactions
+- **NFR17:** The application must use semantic HTML elements for screen reader compatibility
+- **NFR18:** Text must maintain sufficient contrast ratios for readability
