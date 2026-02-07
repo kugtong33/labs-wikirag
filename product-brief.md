@@ -276,3 +276,13 @@ MVP Success Criteria
 Future Vision
 - integration with other vector databases is definitely added on the next version
 - images/audi/video support in the future
+
+
+
+  1. The "aha!" moment - you mentioned users should "see improvements or differences inresponses." What would make you personally say "yes, this comparison is working" - is it seeing corrective RAG fix something naive RAG got wrong, or more about the quality scores being visibly different?
+
+  both, I want technical differences with proper benchmarked numbers, and I also want experiential differences that can be seen and felt by the user
+
+  2. MVP validation - you listed 4 query types (factual, open-ended, vague, meta). Do you have a rough sense of how many test queries you'd want to run to feel confident the MVP is working, or is it more of a "I'll know it when I see it" thing?
+
+    lets start with 50 test queries per type
