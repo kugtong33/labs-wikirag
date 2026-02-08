@@ -344,3 +344,145 @@ Future Vision
 3. Biggest technical risk - Could you validate with a Wikipedia subset first (e.g., ~6K featured articles) and scale to full dump in Phase 2?
 
   no, lets start with the full dump
+
+
+    Category 1: Data Architecture
+
+  Since Qdrant is the only data store (no traditional DB needed), the key decisions are:
+
+  1. Qdrant collection schema - How to structure Wikipedia paragraph vectors with metadata.
+    - Option A: Single collection, metadata fields for article title, section, paragraph position, dump version, embedding model
+    - Option B: Separate collections per embedding strategy (so you can re-index without deleting existing)
+
+  For your use case, Option B makes sense - when you switch embedding strategies, you want to re-embed the whole dump into a new collection while keeping the old one available until you're ready to delete. Collection naming could follow a convention like wiki-{strategy}-{dump_date} (e.g., wiki-paragraph-20260201).
+
+  What's your preference?
+  2. Indexing checkpoint/resume strategy - Where to track progress when pausing the 22GB Wikipedia indexing.
+    - Option A: Local checkpoint file (JSON) tracking last processed article ID/offset
+    - Option B: Track progress in Qdrant metadata (query collection to find last inserted)
+
+  Option A is simpler and faster - a small JSON file like indexing-checkpoint json with { lastArticleId, articlesProcessed, totalArticles, strategy,  dumpFile }. No extra queries to Qdrant on resume.
+
+  What are your thoughts?
+  3. Wikipedia XML parsing approach
+    - Option A: sax or xml2js streaming parser (mature, stable)
+    - Option B: fast-xml-parser (faster, good streaming support)
+
+  Both work well for streaming. Any preference?
+
+
+1 Option B: seperate collection per embedding strategy
+  Qdrant has two fields per document, vector and payload, vector contains the embed, payload contains the metadata in json format
+
+2 Option A: have a separate json file to track last checkoint
+
+3 Option B: fast-xml-parser is still maintained
+  last git commit for xml2js wast 3 years ago
+
+
+1. Authentication - The PRD doesn't mention user accounts. This is a local Docker deployment.
+  - Recommendation: No authentication for MVP. The API is only accessible within the Docker
+network or localhost. No user accounts, no sessions, no tokens.
+  - Sound right?
+2. API key management - OpenAI keys need to stay server-side (NFR8-9).
+  - Approach: .env files with dotenv, environment variables injected via docker-compose.yml.
+The PWA never touches API keys - all LLM/embedding calls go through the API layer.
+  - Any preferences on env management beyond standard dotenv?
+3. Input sanitization - User queries go from PWA → API → LLM/Qdrant.
+  - Basic sanitization at the API boundary (trim, length limit, strip control characters). No
+  SQL injection risk since there's no SQL. Qdrant queries are parameterized by the client
+library.
+
+
+1 Lets add proper Authentication in the next phase
+2 Use proper .env format and support, use Mastra's environment variable management support
+3 When implenting check for Qdrant vulnerabilities
+  A critical vulnerability, CVE-2024-3829, in Qdrant versions prior to v1.9.0, allowed arbitrary file uploads, potentially leading to remote code execution. While not a traditional SQL injection, this vulnerability, along with CVE-2024-2221, presented a similar high-risk security issue. Qdrant patched these in v1.9.0 by restricting file uploads, and recommends enabling API keys, TLS, and network binding to secure instances. 
+
+
+
+  1. API design pattern - The API serves two kinds of traffic: streaming responses (SSE) and non-streaming operations (technique listing, config).
+    - Option A: REST + SSE - REST endpoints for CRUD-style operations (GET /techniques, POST /query), SSE for streaming responses
+    - Option B: tRPC - Type-safe API layer, good for TypeScript monorepos, but SSE support requires extra work
+    - Option C: GraphQL - Overkill for this use case
+
+  REST + SSE is the natural fit here - simple, well-understood, and SSE is natively supported.
+  Mastra likely has built-in HTTP server support too.
+
+  Your preference?
+  2. API endpoint structure - Rough shape:
+    - GET /api/techniques - list available RAG techniques
+    - POST /api/query - single query (returns SSE stream)
+    - POST /api/compare - comparison query (returns 2 SSE streams)
+    - GET /api/scores/:queryId - quality scores for a completed query
+    - GET /api/health - health check
+
+  Does this match your mental model, or would you structure it differently?
+  3. Error response format - Standardized error shape across all endpoints.
+    - Option A: RFC 7807 Problem Details ({ type, title, status, detail })
+    - Option B: Simple custom format ({ error: string, code: string, status: number })
+
+1 Option A, go for the most practical option
+
+2 avoid verb words in APIs
+  /api/query -> /api/inquiry
+  /api/compare -> /api/comparison
+3 Option A: but use the updated RFC 9457
+
+
+1 Option A: Zustand, small to medium apps, minimal setup, flexibility
+
+2 Option D: shadcn/ui + tailwind, rapid development
+
+3 Option A: React Router, with a simple SPA implementation
+
+
+1 Option A: Mutli stage builds per app
+
+2 Current latest stable
+
+3 Option C
+
+4 No further 
+
+1 Option B: camelCase
+
+2 Option A: camelCase, but do your best to use single world nouns/names
+
+3 Option A: kebab-case
+
+4 Typesctipt Naming
+  Interfaces/Types: PascalCase, do not use I prefix
+  Functions/Variables: camelCase
+  Constants: UPPER_SNAKE_CASE
+  Enums: PascalCase with PascalCase members
+
+5 API endpoints
+  noun-based RESET, plural resources
+  Route params follows camelCase
+
+6 Option C: top-level tests/ per package/app
+
+7 Option A: by feature
+
+8 Option C: both - stages/ for stage adapters, techniques/ for technique defintions
+
+9 Option A: packages/core/types
+
+10 Option A: wrapped
+
+11 Option A: typed events
+
+12 Option A: ISO 8601 strings
+
+13 Option A: uuid v4
+
+14 Option C: dot.notation
+
+15 Option B: multiple stores
+
+16 Option A: throw and catch at boundary
+
+17 Option A: structured with correlation
+
+18 OptionA: status enum
