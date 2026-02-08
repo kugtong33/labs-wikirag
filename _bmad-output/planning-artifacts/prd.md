@@ -312,6 +312,12 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 - **FR33:** The API layer can connect to the vector database for vector operations
 - **FR34:** The PWA layer can connect to the API layer for query submission and streaming
 
+### RAG Technique Implementations
+
+- **FR35:** The system can execute Corrective RAG, which evaluates retrieved context for relevance and accuracy, discarding or re-retrieving low-quality results before generation
+- **FR36:** The system can execute HyDE (Hypothetical Document Embeddings), which generates a hypothetical answer from the query and uses its embedding for similarity search to improve retrieval for vague or ambiguous queries
+- **FR37:** The system can execute Self-RAG, which iteratively refines retrieval through self-reflection, rewriting queries and re-retrieving to produce progressively better context
+
 ## Non-Functional Requirements
 
 ### Performance

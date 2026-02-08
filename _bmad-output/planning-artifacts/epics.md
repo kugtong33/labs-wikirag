@@ -49,6 +49,9 @@ FR31: Operators can start the frontend layer via a container
 FR32: Operators can start all services via a single orchestration command
 FR33: The API layer can connect to the vector database for vector operations
 FR34: The PWA layer can connect to the API layer for query submission and streaming
+FR35: The system can execute Corrective RAG, evaluating and correcting retrieved context before generation
+FR36: The system can execute HyDE, generating hypothetical answer embeddings for improved vague query retrieval
+FR37: The system can execute Self-RAG, iteratively refining retrieval through self-reflection and query rewriting
 
 ### NonFunctional Requirements
 
@@ -123,6 +126,9 @@ FR31: Epic 2 - Frontend layer container
 FR32: Epic 1 - Single orchestration command (docker-compose)
 FR33: Epic 1 - API to Qdrant connectivity
 FR34: Epic 2 - PWA to API connectivity for queries and streaming
+FR35: Epic 5 - Corrective RAG evaluates and corrects retrieved context before generation
+FR36: Epic 6 - HyDE generates hypothetical answer embedding for improved vague query retrieval
+FR37: Epic 7 - Self-RAG iteratively refines retrieval through self-reflection and query rewriting
 
 ## Epic List
 
@@ -144,12 +150,15 @@ Users can evaluate RAG responses with benchmarked quality scores across 5 dimens
 
 ### Epic 5: Corrective RAG
 Users can see how Corrective RAG automatically detects and fixes incorrect retrievals, improving answer accuracy.
+**FRs covered:** FR35
 
 ### Epic 6: HyDE
 Users can handle vague queries effectively through hypothesis-driven embedding that resolves ambiguous questions.
+**FRs covered:** FR36
 
 ### Epic 7: Self-RAG
 Users can see iterative query refinement that produces higher-quality results through self-reflective retrieval. Completes all 5 MVP RAG techniques.
+**FRs covered:** FR37
 
 ## Epic 1: Platform Setup & Data Ingestion
 
