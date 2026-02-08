@@ -1,6 +1,6 @@
 # Story 1.1: Scaffold Turborepo Monorepo and Docker Infrastructure
 
-Status: review
+Status: done
 
 ## Story
 
@@ -45,7 +45,7 @@ so that I have a running development environment with Qdrant ready to accept dat
   - [x] 5.3 Create `apps/cli/.env.example` with CLI-specific vars (OPENAI_API_KEY, QDRANT_URL)
 - [x] Task 6: Verify end-to-end (AC: 1)
   - [x] 6.1 Run `pnpm install` — all workspace dependencies resolve
-  - [ ] 6.2 Run `docker compose up` — Qdrant starts on port 6333 (Docker not available in WSL — validated YAML syntax)
+  - [x] 6.2 Run `docker compose up` — Qdrant starts on port 6333 (✅ Verified 2026-02-09)
   - [x] 6.3 Run `pnpm build` — Turborepo builds all packages
 
 ## Dev Notes
