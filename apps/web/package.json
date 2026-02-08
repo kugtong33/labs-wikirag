@@ -1,0 +1,14 @@
+{
+  "name": "@wikirag/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "echo \"No tests yet\""
+  },
+  "devDependencies": {
+    "@wikirag/tsconfig": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

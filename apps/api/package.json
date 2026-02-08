@@ -1,0 +1,19 @@
+{
+  "name": "@wikirag/api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@wikirag/core": "workspace:*",
+    "@wikirag/qdrant": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.2",
+    "@wikirag/tsconfig": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

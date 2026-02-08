@@ -1,6 +1,6 @@
 # Story 1.1: Scaffold Turborepo Monorepo and Docker Infrastructure
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -22,31 +22,31 @@ so that I have a running development environment with Qdrant ready to accept dat
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Initialize Turborepo monorepo (AC: 1, 2)
-  - [ ] 1.1 Run `pnpm dlx create-turbo@latest` and restructure to match architecture
-  - [ ] 1.2 Configure `pnpm-workspace.yaml` with `apps/*` and `packages/*`
-  - [ ] 1.3 Configure `turbo.json` with build/dev/lint/test pipelines
-  - [ ] 1.4 Set root `package.json` with workspace scripts
-- [ ] Task 2: Create app packages with correct structure (AC: 2)
-  - [ ] 2.1 Create `apps/api/` with `package.json`, `tsconfig.json`, `src/index.ts` placeholder
-  - [ ] 2.2 Create `apps/web/` with `package.json`, `tsconfig.json`, `src/main.tsx` placeholder
-  - [ ] 2.3 Create `apps/cli/` with `package.json`, `tsconfig.json`, `src/index.ts` placeholder
-- [ ] Task 3: Create shared packages (AC: 2, 3)
-  - [ ] 3.1 Create `packages/core/` with `package.json`, `tsconfig.json`, `src/index.ts` placeholder
-  - [ ] 3.2 Create `packages/qdrant/` with `package.json`, `tsconfig.json`, `src/index.ts` placeholder
-  - [ ] 3.3 Create `packages/tsconfig/` with `base.json`, `node.json`, `react.json`
-- [ ] Task 4: Docker infrastructure (AC: 1, 4)
-  - [ ] 4.1 Create `docker-compose.yml` with Qdrant service (`qdrant/qdrant:v1.16.3`)
-  - [ ] 4.2 Configure Qdrant volume for persistence
-  - [ ] 4.3 Add health check for Qdrant container
-- [ ] Task 5: Environment configuration (AC: 5)
-  - [ ] 5.1 Create root `.env.example` with common vars
-  - [ ] 5.2 Create `apps/api/.env.example` with API-specific vars (OPENAI_API_KEY, QDRANT_URL)
-  - [ ] 5.3 Create `apps/cli/.env.example` with CLI-specific vars (OPENAI_API_KEY, QDRANT_URL)
-- [ ] Task 6: Verify end-to-end (AC: 1)
-  - [ ] 6.1 Run `pnpm install` — all workspace dependencies resolve
-  - [ ] 6.2 Run `docker compose up` — Qdrant starts on port 6333
-  - [ ] 6.3 Run `pnpm build` — Turborepo builds all packages
+- [x] Task 1: Initialize Turborepo monorepo (AC: 1, 2)
+  - [x] 1.1 Run `pnpm dlx create-turbo@latest` and restructure to match architecture
+  - [x] 1.2 Configure `pnpm-workspace.yaml` with `apps/*` and `packages/*`
+  - [x] 1.3 Configure `turbo.json` with build/dev/lint/test pipelines
+  - [x] 1.4 Set root `package.json` with workspace scripts
+- [x] Task 2: Create app packages with correct structure (AC: 2)
+  - [x] 2.1 Create `apps/api/` with `package.json`, `tsconfig.json`, `src/index.ts` placeholder
+  - [x] 2.2 Create `apps/web/` with `package.json`, `tsconfig.json`, `src/main.tsx` placeholder
+  - [x] 2.3 Create `apps/cli/` with `package.json`, `tsconfig.json`, `src/index.ts` placeholder
+- [x] Task 3: Create shared packages (AC: 2, 3)
+  - [x] 3.1 Create `packages/core/` with `package.json`, `tsconfig.json`, `src/index.ts` placeholder
+  - [x] 3.2 Create `packages/qdrant/` with `package.json`, `tsconfig.json`, `src/index.ts` placeholder
+  - [x] 3.3 Create `packages/tsconfig/` with `base.json`, `node.json`, `react.json`
+- [x] Task 4: Docker infrastructure (AC: 1, 4)
+  - [x] 4.1 Create `docker-compose.yml` with Qdrant service (`qdrant/qdrant:v1.16.3`)
+  - [x] 4.2 Configure Qdrant volume for persistence
+  - [x] 4.3 Add health check for Qdrant container
+- [x] Task 5: Environment configuration (AC: 5)
+  - [x] 5.1 Create root `.env.example` with common vars
+  - [x] 5.2 Create `apps/api/.env.example` with API-specific vars (OPENAI_API_KEY, QDRANT_URL)
+  - [x] 5.3 Create `apps/cli/.env.example` with CLI-specific vars (OPENAI_API_KEY, QDRANT_URL)
+- [x] Task 6: Verify end-to-end (AC: 1)
+  - [x] 6.1 Run `pnpm install` — all workspace dependencies resolve
+  - [ ] 6.2 Run `docker compose up` — Qdrant starts on port 6333 (Docker not available in WSL — validated YAML syntax)
+  - [x] 6.3 Run `pnpm build` — Turborepo builds all packages
 
 ## Dev Notes
 
@@ -170,8 +170,56 @@ labs-wikirag/
 
 ### Agent Model Used
 
+Claude Opus 4.6
+
 ### Debug Log References
+
+- `pnpm install` resolved all 7 workspace projects, installed turbo 2.8.3 and typescript 5.9.3
+- Initial `pnpm build` failed: `console` not found in Node.js packages (missing `@types/node`)
+- Fixed by adding `@types/node@^25.2.2` as devDependency to api, cli, core, qdrant packages
+- Second `pnpm build` succeeded: 5 packages built (1 cached), 2.481s
+- Docker not available in WSL2 environment — `docker-compose.yml` validated as correct YAML
 
 ### Completion Notes List
 
+- Scaffolded Turborepo monorepo with 3 apps (api, web, cli) and 3 packages (core, qdrant, tsconfig)
+- All packages use @wikirag/* namespace with workspace:* protocol
+- Shared TypeScript configs: base.json (strict, ESM), node.json (ES2022, NodeNext), react.json (ES2022, bundler, react-jsx)
+- Docker Compose with Qdrant v1.16.3 pinned, named volume, health check
+- Environment variable documentation via .env.example at root, apps/api, and apps/cli
+- Updated .gitignore to include dist/, .env, .turbo/, IDE files
+
+### Change Log
+
+- 2026-02-08: Story 1.1 implemented — monorepo scaffold, Docker infrastructure, environment config
+
 ### File List
+
+- package.json (new)
+- pnpm-workspace.yaml (new)
+- turbo.json (new)
+- pnpm-lock.yaml (new)
+- docker-compose.yml (new)
+- .env.example (new)
+- .gitignore (modified)
+- apps/api/package.json (new)
+- apps/api/tsconfig.json (new)
+- apps/api/.env.example (new)
+- apps/api/src/index.ts (new)
+- apps/web/package.json (new)
+- apps/web/tsconfig.json (new)
+- apps/web/src/main.tsx (new)
+- apps/cli/package.json (new)
+- apps/cli/tsconfig.json (new)
+- apps/cli/.env.example (new)
+- apps/cli/src/index.ts (new)
+- packages/core/package.json (new)
+- packages/core/tsconfig.json (new)
+- packages/core/src/index.ts (new)
+- packages/qdrant/package.json (new)
+- packages/qdrant/tsconfig.json (new)
+- packages/qdrant/src/index.ts (new)
+- packages/tsconfig/package.json (new)
+- packages/tsconfig/base.json (new)
+- packages/tsconfig/node.json (new)
+- packages/tsconfig/react.json (new)
