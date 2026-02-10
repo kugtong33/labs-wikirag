@@ -44,37 +44,37 @@ development_status:
   1-1-scaffold-turborepo-monorepo-and-docker-infrastructure: done
   1-2-qdrant-client-wrapper-and-collection-management: done
   1-3-wikipedia-xml-streaming-parser: done
-  1-4-embedding-generation-and-qdrant-insertion: backlog
-  1-5-indexing-cli-with-checkpoint-and-resume: backlog
+  1-4-embedding-generation-and-qdrant-insertion: ready-for-dev
+  1-5-indexing-cli-with-checkpoint-and-resume: ready-for-dev
   epic-1-retrospective: optional
 
   epic-2: backlog
-  2-1-pipeline-adapter-interfaces-and-technique-registry: backlog
-  2-2-naive-rag-technique-implementation: backlog
-  2-3-api-server-with-streaming-inquiry-endpoint: backlog
-  2-4-pwa-shell-with-routing-and-technique-selection: backlog
-  2-5-single-query-streaming-experience: backlog
+  2-1-pipeline-adapter-interfaces-and-technique-registry: ready-for-dev
+  2-2-naive-rag-technique-implementation: ready-for-dev
+  2-3-api-server-with-streaming-inquiry-endpoint: ready-for-dev
+  2-4-pwa-shell-with-routing-and-technique-selection: ready-for-dev
+  2-5-single-query-streaming-experience: ready-for-dev
   epic-2-retrospective: optional
 
   epic-3: backlog
-  3-1-simple-rag-technique-implementation: backlog
-  3-2-comparison-api-endpoint-with-parallel-sse-streams: backlog
-  3-3-comparison-mode-ui-with-side-by-side-display: backlog
+  3-1-simple-rag-technique-implementation: ready-for-dev
+  3-2-comparison-api-endpoint-with-parallel-sse-streams: ready-for-dev
+  3-3-comparison-mode-ui-with-side-by-side-display: ready-for-dev
   epic-3-retrospective: optional
 
   epic-4: backlog
-  4-1-quality-scoring-engine: backlog
-  4-2-scores-api-and-ui-integration: backlog
+  4-1-quality-scoring-engine: ready-for-dev
+  4-2-scores-api-and-ui-integration: ready-for-dev
   epic-4-retrospective: optional
 
   epic-5: backlog
-  5-1-corrective-rag-technique-implementation: backlog
+  5-1-corrective-rag-technique-implementation: ready-for-dev
   epic-5-retrospective: optional
 
   epic-6: backlog
-  6-1-hyde-technique-implementation: backlog
+  6-1-hyde-technique-implementation: ready-for-dev
   epic-6-retrospective: optional
 
   epic-7: backlog
-  7-1-self-rag-technique-implementation: backlog
+  7-1-self-rag-technique-implementation: ready-for-dev
   epic-7-retrospective: optional
