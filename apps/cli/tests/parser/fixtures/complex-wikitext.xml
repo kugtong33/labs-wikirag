@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mediawiki>
+  <page>
+    <title>Complex Wikitext</title>
+    <id>4</id>
+    <revision>
+      <text>'''Paris''' is the [[capital city|capital]] of [[France]].{{cite web|url=example.com}}
+
+The city has over 2 million<ref>Source here</ref> residents and is famous for the [[Eiffel Tower]].
+
+== Tourism ==
+
+Paris attracts millions of ''tourists'' each year who visit sites like the '''Louvre Museum'''.</text>
+    </revision>
+  </page>
+</mediawiki>

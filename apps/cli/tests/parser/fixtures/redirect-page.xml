@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mediawiki>
+  <page>
+    <title>Old Title</title>
+    <id>2</id>
+    <redirect title="New Title" />
+    <revision>
+      <text>#REDIRECT [[New Title]]</text>
+    </revision>
+  </page>
+</mediawiki>

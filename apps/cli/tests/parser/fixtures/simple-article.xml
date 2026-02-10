@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mediawiki>
+  <page>
+    <title>Test Article</title>
+    <id>1</id>
+    <revision>
+      <text>This is the introduction paragraph with some basic content.
+
+This is the second paragraph in the introduction section.
+
+== Section One ==
+
+This is a paragraph in section one with relevant information.
+
+This is another paragraph in section one.</text>
+    </revision>
+  </page>
+</mediawiki>

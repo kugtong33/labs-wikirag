@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mediawiki>
+  <page>
+    <title>Multi Section Article</title>
+    <id>3</id>
+    <revision>
+      <text>This is the introduction with important context information.
+
+== History ==
+
+This is the first paragraph in the history section.
+
+This is the second paragraph in the history section.
+
+== Geography ==
+
+This is the first paragraph in the geography section.
+
+This is the second paragraph in the geography section.</text>
+    </revision>
+  </page>
+</mediawiki>

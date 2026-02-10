@@ -43,7 +43,7 @@ development_status:
   epic-1: in-progress
   1-1-scaffold-turborepo-monorepo-and-docker-infrastructure: done
   1-2-qdrant-client-wrapper-and-collection-management: done
-  1-3-wikipedia-xml-streaming-parser: backlog
+  1-3-wikipedia-xml-streaming-parser: done
   1-4-embedding-generation-and-qdrant-insertion: backlog
   1-5-indexing-cli-with-checkpoint-and-resume: backlog
   epic-1-retrospective: optional
