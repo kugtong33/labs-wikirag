@@ -1,3 +1,4 @@
+import * as R from 'ramda';
 import { QdrantClientWrapper } from './client.js';
 import { SearchResult, WikipediaPayload, QdrantError } from './types.js';
 
@@ -34,24 +35,24 @@ export class SearchManager {
         with_vector: false, // Don't return vectors by default (can be large)
       });
 
-      // Map Qdrant response to our SearchResult type
-      return response.map((point) => {
-        // Handle vector type - ensure it's number[] or undefined
-        let vector: number[] | undefined;
-        if (Array.isArray(point.vector)) {
-          // Check if it's a 1D array
-          if (point.vector.length > 0 && typeof point.vector[0] === 'number') {
-            vector = point.vector as number[];
-          }
-        }
+      // Map Qdrant response to our SearchResult type using Ramda
+      const parseVector = R.ifElse(
+        R.both(
+          R.is(Array),
+          R.pipe(R.head, R.is(Number))
+        ),
+        R.identity,
+        R.always(undefined)
+      );
 
-        return {
-          id: point.id,
-          score: point.score,
-          payload: point.payload as unknown as WikipediaPayload,
-          vector,
-        };
+      const mapPoint = (point: any): SearchResult => ({
+        id: point.id,
+        score: point.score,
+        payload: point.payload as WikipediaPayload,
+        vector: parseVector(point.vector),
       });
+
+      return R.map(mapPoint, response);
     } catch (error) {
       throw new QdrantError(
         `Failed to perform similarity search on ${collectionName}`,
@@ -88,23 +89,23 @@ export class SearchManager {
         with_vector: true, // Include vectors in response
       });
 
-      return response.map((point) => {
-        // Handle vector type - ensure it's number[]
-        let vector: number[] = [];
-        if (Array.isArray(point.vector)) {
-          // Check if it's a 1D array
-          if (point.vector.length > 0 && typeof point.vector[0] === 'number') {
-            vector = point.vector as number[];
-          }
-        }
+      const parseVectorArray = R.ifElse(
+        R.both(
+          R.is(Array),
+          R.pipe(R.head, R.is(Number))
+        ),
+        R.identity,
+        R.always([])
+      );
 
-        return {
-          id: point.id,
-          score: point.score,
-          payload: point.payload as unknown as WikipediaPayload,
-          vector,
-        };
+      const mapPointWithVector = (point: any): SearchResult => ({
+        id: point.id,
+        score: point.score,
+        payload: point.payload as WikipediaPayload,
+        vector: parseVectorArray(point.vector),
       });
+
+      return R.map(mapPointWithVector, response);
     } catch (error) {
       throw new QdrantError(
         `Failed to perform similarity search with vectors on ${collectionName}`,
@@ -135,10 +136,12 @@ export class SearchManager {
         with_vector: false,
       });
 
-      return response.points.map((point) => ({
+      const mapScrollPoint = (point: any) => ({
         id: point.id,
-        payload: point.payload as unknown as WikipediaPayload,
-      }));
+        payload: point.payload as WikipediaPayload,
+      });
+
+      return R.map(mapScrollPoint, response.points);
     } catch (error) {
       throw new QdrantError(
         `Failed to scroll points in ${collectionName}`,

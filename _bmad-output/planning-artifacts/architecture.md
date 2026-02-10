@@ -40,6 +40,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 ### Technical Constraints & Dependencies
 
 - **TypeScript throughout** - All layers in TypeScript, no Python
+- **Ramda.js** - Mandatory functional utility library for all data manipulation and transformation
 - **Mastra framework primary** with LangChain.js as fallback for gaps
 - **Qdrant** for vector storage (official TypeScript client)
 - **OpenAI** for embeddings (open-source alternatives deferred to Phase 2)
@@ -240,6 +241,59 @@ packages/
 - Noun-based REST, plural resources
 - Route params in `camelCase`
 - Examples: `GET /api/techniques`, `POST /api/inquiry`, `GET /api/scores/:queryId`
+
+### Data Manipulation & Functional Utilities
+
+**Ramda.js as Standard Library:**
+- All data manipulation and transformation operations MUST use Ramda.js
+- Ramda is the mandatory functional utility library across the entire codebase
+- Prefer Ramda functions over native JavaScript array/object methods
+
+**When to Use Ramda:**
+- Array operations: Use `R.map`, `R.filter`, `R.reduce`, `R.find`, `R.any`, `R.all` instead of native methods
+- Object manipulation: Use `R.prop`, `R.path`, `R.pathOr`, `R.pick`, `R.omit`, `R.assoc` for object access and transformation
+- Type checking: Use `R.is`, `R.has`, `R.type` instead of `typeof` and `instanceof`
+- Data extraction: Use `R.pluck`, `R.project` for extracting data from collections
+- Conditionals: Use `R.ifElse`, `R.when`, `R.unless`, `R.cond` for functional conditionals
+- Composition: Use `R.pipe`, `R.compose` for function composition
+
+**Ramda Coding Patterns:**
+- Prefer point-free style where it improves readability
+- Use composition (`R.pipe`/`R.compose`) for multi-step transformations
+- Leverage currying for reusable partial functions
+- Use `R.pathOr` and `R.propOr` for safe access with defaults instead of null checks
+
+**Examples:**
+
+```typescript
+// Array mapping - Use Ramda
+const names = R.pluck('name', users);           // Preferred
+const names = users.map(u => u.name);           // Avoid
+
+// Object property check - Use Ramda
+const hasEmail = R.has('email', user);          // Preferred
+const hasEmail = 'email' in user;               // Avoid
+
+// Safe nested access - Use Ramda
+const city = R.pathOr('Unknown', ['address', 'city'], user);  // Preferred
+const city = user?.address?.city || 'Unknown';  // Avoid
+
+// Filtering - Use Ramda
+const active = R.filter(R.propEq(true, 'active'), users);     // Preferred
+const active = users.filter(u => u.active === true);          // Avoid
+
+// Function composition - Use Ramda
+const processData = R.pipe(
+  R.filter(R.prop('active')),
+  R.map(R.pick(['id', 'name'])),
+  R.sortBy(R.prop('name'))
+);                                              // Preferred
+```
+
+**Migration Guidelines:**
+- When modifying existing code, migrate to Ramda patterns
+- All new code MUST use Ramda for data operations
+- Update tests to verify Ramda-based implementations
 
 ### Structure Patterns
 

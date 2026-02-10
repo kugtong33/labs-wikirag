@@ -7,7 +7,14 @@ settings:
 importers:
 
   .:
+    dependencies:
+      ramda:
+        specifier: ^0.32.0
+        version: 0.32.0
     devDependencies:
+      '@types/ramda':
+        specifier: ^0.31.1
+        version: 0.31.1
       turbo:
         specifier: ^2.8.3
         version: 2.8.3
@@ -23,10 +30,16 @@ importers:
       '@wikirag/qdrant':
         specifier: workspace:*
         version: link:../../packages/qdrant
+      ramda:
+        specifier: ^0.32.0
+        version: 0.32.0
     devDependencies:
       '@types/node':
         specifier: ^25.2.2
         version: 25.2.2
+      '@types/ramda':
+        specifier: ^0.31.1
+        version: 0.31.1
       '@wikirag/tsconfig':
         specifier: workspace:*
         version: link:../../packages/tsconfig
@@ -42,10 +55,16 @@ importers:
       '@wikirag/qdrant':
         specifier: workspace:*
         version: link:../../packages/qdrant
+      ramda:
+        specifier: ^0.32.0
+        version: 0.32.0
     devDependencies:
       '@types/node':
         specifier: ^25.2.2
         version: 25.2.2
+      '@types/ramda':
+        specifier: ^0.31.1
+        version: 0.31.1
       '@wikirag/tsconfig':
         specifier: workspace:*
         version: link:../../packages/tsconfig
@@ -63,10 +82,17 @@ importers:
         version: 5.9.3
 
   packages/core:
+    dependencies:
+      ramda:
+        specifier: ^0.32.0
+        version: 0.32.0
     devDependencies:
       '@types/node':
         specifier: ^25.2.2
         version: 25.2.2
+      '@types/ramda':
+        specifier: ^0.31.1
+        version: 0.31.1
       '@wikirag/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
@@ -79,10 +105,16 @@ importers:
       '@qdrant/js-client-rest':
         specifier: ^1.12.2
         version: 1.16.2(typescript@5.9.3)
+      ramda:
+        specifier: ^0.32.0
+        version: 0.32.0
     devDependencies:
       '@types/node':
         specifier: ^25.2.2
         version: 25.2.2
+      '@types/ramda':
+        specifier: ^0.31.1
+        version: 0.31.1
       '@wikirag/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
@@ -406,6 +438,9 @@ packages:
   '@types/node@25.2.2':
     resolution: {integrity: sha512-BkmoP5/FhRYek5izySdkOneRyXYN35I860MFAGupTdebyE66uZaR+bXLHq8k4DirE5DwQi3NuhvRU1jqTVwUrQ==}
 
+  '@types/ramda@0.31.1':
+    resolution: {integrity: sha512-Vt6sFXnuRpzaEj+yeutA0q3bcAsK7wdPuASIzR9LXqL4gJPyFw8im9qchlbp4ltuf3kDEIRmPJTD/Fkg60dn7g==}
+
   '@vitest/expect@4.0.18':
     resolution: {integrity: sha512-8sCWUyckXXYvx4opfzVY03EOiYVxyNrHS5QxX3DAIi5dpJAAkyJezHCP77VMX4HKA2LDT/Jpfo8i2r5BE3GnQQ==}
 
@@ -497,6 +532,9 @@ packages:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
     engines: {node: ^10 || ^12 || >=14}
 
+  ramda@0.32.0:
+    resolution: {integrity: sha512-GQWAHhxhxWBWA8oIBr1XahFVjQ9Fic6MK9ikijfd4TZHfE2+urfk+irVlR5VOn48uwMgM+loRRBJd6Yjsbc0zQ==}
+
   rollup@4.57.1:
     resolution: {integrity: sha512-oQL6lgK3e2QZeQ7gcgIkS2YZPg5slw37hYufJ3edKlfQSGGm8ICoxswK15ntSzF/a8+h7ekRy7k7oWc3BQ7y8A==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
@@ -529,6 +567,9 @@ packages:
   tinyrainbow@3.0.3:
     resolution: {integrity: sha512-PSkbLUoxOFRzJYjjxHJt9xro7D+iilgMX/C9lawzVuYiIdcihh9DXmVibBe8lmcFrRi/VzlPjBxbN7rH24q8/Q==}
     engines: {node: '>=14.0.0'}
+
+  ts-toolbelt@9.6.0:
+    resolution: {integrity: sha512-nsZd8ZeNUzukXPlJmTBwUAuABDe/9qtVDelJeT/qW0ow3ZS3BsQJtNkan1802aM9Uf68/Y8ljw86Hu0h5IUW3w==}
 
   turbo-darwin-64@2.8.3:
     resolution: {integrity: sha512-4kXRLfcygLOeNcP6JquqRLmGB/ATjjfehiojL2dJkL7GFm3SPSXbq7oNj8UbD8XriYQ5hPaSuz59iF1ijPHkTw==}
@@ -563,6 +604,9 @@ packages:
   turbo@2.8.3:
     resolution: {integrity: sha512-8Osxz5Tu/Dw2kb31EAY+nhq/YZ3wzmQSmYa1nIArqxgCAldxv9TPlrAiaBUDVnKA4aiPn0OFBD1ACcpc5VFOAQ==}
     hasBin: true
+
+  types-ramda@0.31.0:
+    resolution: {integrity: sha512-vaoC35CRC3xvL8Z6HkshDbi6KWM1ezK0LHN0YyxXWUn9HKzBNg/T3xSGlJZjCYspnOD3jE7bcizsp0bUXZDxnQ==}
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
@@ -835,6 +879,10 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
+  '@types/ramda@0.31.1':
+    dependencies:
+      types-ramda: 0.31.0
+
   '@vitest/expect@4.0.18':
     dependencies:
       '@standard-schema/spec': 1.1.0
@@ -942,6 +990,8 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
+  ramda@0.32.0: {}
+
   rollup@4.57.1:
     dependencies:
       '@types/estree': 1.0.8
@@ -992,6 +1042,8 @@ snapshots:
 
   tinyrainbow@3.0.3: {}
 
+  ts-toolbelt@9.6.0: {}
+
   turbo-darwin-64@2.8.3:
     optional: true
 
@@ -1018,6 +1070,10 @@ snapshots:
       turbo-linux-arm64: 2.8.3
       turbo-windows-64: 2.8.3
       turbo-windows-arm64: 2.8.3
+
+  types-ramda@0.31.0:
+    dependencies:
+      ts-toolbelt: 9.6.0
 
   typescript@5.9.3: {}
 

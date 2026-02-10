@@ -9,10 +9,12 @@
   },
   "dependencies": {
     "@wikirag/core": "workspace:*",
-    "@wikirag/qdrant": "workspace:*"
+    "@wikirag/qdrant": "workspace:*",
+    "ramda": "^0.32.0"
   },
   "devDependencies": {
     "@types/node": "^25.2.2",
+    "@types/ramda": "^0.31.1",
     "@wikirag/tsconfig": "workspace:*",
     "typescript": "^5.9.3"
   }

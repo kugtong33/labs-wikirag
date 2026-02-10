@@ -1,3 +1,4 @@
+import * as R from 'ramda';
 import { QdrantClientWrapper } from './client.js';
 import { CollectionConfig, QdrantError } from './types.js';
 
@@ -86,7 +87,7 @@ export class CollectionManager {
       const client = this.clientWrapper.getClient();
       const response = await client.getCollections();
 
-      return response.collections.some((col) => col.name === collectionName);
+      return R.any(R.propEq(collectionName, 'name'))(response.collections);
     } catch (error) {
       throw new QdrantError(
         `Failed to check if collection ${collectionName} exists`,
@@ -138,7 +139,7 @@ export class CollectionManager {
       const client = this.clientWrapper.getClient();
       const response = await client.getCollections();
 
-      return response.collections.map((col) => col.name);
+      return R.pluck('name', response.collections);
     } catch (error) {
       throw new QdrantError(
         'Failed to list collections',
@@ -163,22 +164,27 @@ export class CollectionManager {
       const client = this.clientWrapper.getClient();
       const info = await client.getCollection(collectionName);
 
-      // Handle different vector configuration structures
-      const vectorsConfig = info.config.params.vectors;
-      let vectorSize: number = 0;
-      let distance: string = 'Cosine';
+      // Handle different vector configuration structures using Ramda
+      const vectorsConfig = R.pathOr({}, ['config', 'params', 'vectors'], info);
 
-      if (typeof vectorsConfig === 'object' && vectorsConfig !== null) {
-        if ('size' in vectorsConfig && typeof vectorsConfig.size === 'number') {
-          vectorSize = vectorsConfig.size;
-        }
-        if ('distance' in vectorsConfig && typeof vectorsConfig.distance === 'string') {
-          distance = vectorsConfig.distance;
-        }
-      }
+      const vectorSize = R.when(
+        R.both(R.is(Object), R.has('size')),
+        R.pipe(
+          R.prop('size'),
+          R.when(R.is(Number), R.identity)
+        )
+      )(vectorsConfig) || 0;
+
+      const distance = R.when(
+        R.both(R.is(Object), R.has('distance')),
+        R.pipe(
+          R.prop('distance'),
+          R.when(R.is(String), R.identity)
+        )
+      )(vectorsConfig) || 'Cosine';
 
       return {
-        vectorsCount: info.points_count || 0,
+        vectorsCount: R.propOr(0, 'points_count', info),
         vectorSize,
         distance,
       };
