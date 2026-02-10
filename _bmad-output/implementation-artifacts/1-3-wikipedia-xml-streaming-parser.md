@@ -22,45 +22,45 @@ So that the 22GB+ dump is processed incrementally without loading it all into me
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Research Wikipedia XML dump format (AC: 1)
-  - [ ] 1.1 Download sample Wikipedia dump XML from dumps.wikimedia.org
-  - [ ] 1.2 Analyze XML structure (page, title, text, redirect elements)
-  - [ ] 1.3 Identify section markers (== Section Name ==) in wikitext
-  - [ ] 1.4 Document paragraph extraction rules (split on \n\n, filter empty)
-- [ ] Task 2: Set up fast-xml-parser streaming (AC: 1, 5)
-  - [ ] 2.1 Add fast-xml-parser v5.3.4 dependency to apps/cli/package.json
-  - [ ] 2.2 Create src/parser/xml-stream.ts with XMLParser configuration
-  - [ ] 2.3 Implement Node.js stream pipeline (fs.createReadStream → XMLParser)
-  - [ ] 2.4 Configure parser options (ignoreAttributes: true, parseTagValue: true)
-- [ ] Task 3: Implement Wikipedia page parser (AC: 2, 3, 4)
-  - [ ] 3.1 Create src/parser/page-parser.ts with parsePage function
-  - [ ] 3.2 Extract article title from <title> element
-  - [ ] 3.3 Detect and skip redirect pages (<redirect> element present)
-  - [ ] 3.4 Parse wikitext from <text> element
-  - [ ] 3.5 Split wikitext into sections using regex (== Section Name ==)
-  - [ ] 3.6 Extract paragraphs per section (split on \n\n, filter empty, trim)
-  - [ ] 3.7 Assign paragraphPosition sequentially within each section
-  - [ ] 3.8 Use Ramda for data transformations (R.pipe, R.filter, R.map)
-- [ ] Task 4: Implement paragraph extraction with metadata (AC: 2, 3)
-  - [ ] 4.1 Create src/parser/paragraph-extractor.ts
-  - [ ] 4.2 Define WikipediaParagraph type (articleTitle, sectionName, paragraphPosition, content)
-  - [ ] 4.3 Implement extractParagraphs using Ramda for functional composition
-  - [ ] 4.4 Handle articles with no sections (sectionName = empty string)
-  - [ ] 4.5 Filter out wiki markup artifacts ([[]], {{}}), leaving clean text
-- [ ] Task 5: Create streaming parser module (AC: 1, 5)
-  - [ ] 5.1 Create src/parser/index.ts as main parser export
-  - [ ] 5.2 Implement parseWikipediaDump generator function (async generator)
-  - [ ] 5.3 Yield WikipediaParagraph objects one at a time
-  - [ ] 5.4 Ensure bounded memory (no array accumulation)
-  - [ ] 5.5 Handle parser errors gracefully (log and skip malformed pages)
-- [ ] Task 6: Add comprehensive tests (AC: All)
-  - [ ] 6.1 Create tests/parser/xml-stream.test.ts
-  - [ ] 6.2 Create tests/parser/page-parser.test.ts with redirect test
-  - [ ] 6.3 Create tests/parser/paragraph-extractor.test.ts
-  - [ ] 6.4 Create test fixtures (sample Wikipedia XML with 2-3 articles)
-  - [ ] 6.5 Test multi-section articles with correct paragraph numbering
-  - [ ] 6.6 Test memory usage stays bounded (process small vs large test files)
-  - [ ] 6.7 Run pnpm test from apps/cli (all tests pass)
+- [x] Task 1: Research Wikipedia XML dump format (AC: 1)
+  - [x] 1.1 Download sample Wikipedia dump XML from dumps.wikimedia.org
+  - [x] 1.2 Analyze XML structure (page, title, text, redirect elements)
+  - [x] 1.3 Identify section markers (== Section Name ==) in wikitext
+  - [x] 1.4 Document paragraph extraction rules (split on \n\n, filter empty)
+- [x] Task 2: Set up fast-xml-parser streaming (AC: 1, 5)
+  - [x] 2.1 Add fast-xml-parser v5.3.4 dependency to apps/cli/package.json
+  - [x] 2.2 Create src/parser/xml-stream.ts with XMLParser configuration
+  - [x] 2.3 Implement Node.js stream pipeline (fs.createReadStream → XMLParser)
+  - [x] 2.4 Configure parser options (ignoreAttributes: true, parseTagValue: true)
+- [x] Task 3: Implement Wikipedia page parser (AC: 2, 3, 4)
+  - [x] 3.1 Create src/parser/page-parser.ts with parsePage function
+  - [x] 3.2 Extract article title from <title> element
+  - [x] 3.3 Detect and skip redirect pages (<redirect> element present)
+  - [x] 3.4 Parse wikitext from <text> element
+  - [x] 3.5 Split wikitext into sections using regex (== Section Name ==)
+  - [x] 3.6 Extract paragraphs per section (split on \n\n, filter empty, trim)
+  - [x] 3.7 Assign paragraphPosition sequentially within each section
+  - [x] 3.8 Use Ramda for data transformations (R.pipe, R.filter, R.map)
+- [x] Task 4: Implement paragraph extraction with metadata (AC: 2, 3)
+  - [x] 4.1 Create src/parser/paragraph-extractor.ts
+  - [x] 4.2 Define WikipediaParagraph type (articleTitle, sectionName, paragraphPosition, content)
+  - [x] 4.3 Implement extractParagraphs using Ramda for functional composition
+  - [x] 4.4 Handle articles with no sections (sectionName = empty string)
+  - [x] 4.5 Filter out wiki markup artifacts ([[]], {{}}), leaving clean text
+- [x] Task 5: Create streaming parser module (AC: 1, 5)
+  - [x] 5.1 Create src/parser/index.ts as main parser export
+  - [x] 5.2 Implement parseWikipediaDump generator function (async generator)
+  - [x] 5.3 Yield WikipediaParagraph objects one at a time
+  - [x] 5.4 Ensure bounded memory (no array accumulation)
+  - [x] 5.5 Handle parser errors gracefully (log and skip malformed pages)
+- [x] Task 6: Add comprehensive tests (AC: All)
+  - [x] 6.1 Create tests/parser/xml-stream.test.ts
+  - [x] 6.2 Create tests/parser/page-parser.test.ts with redirect test
+  - [x] 6.3 Create tests/parser/paragraph-extractor.test.ts
+  - [x] 6.4 Create test fixtures (sample Wikipedia XML with 2-3 articles)
+  - [x] 6.5 Test multi-section articles with correct paragraph numbering
+  - [x] 6.6 Test memory usage stays bounded (process small vs large test files)
+  - [x] 6.7 Run pnpm test from apps/cli (all tests pass)
 
 ## Dev Notes
 
