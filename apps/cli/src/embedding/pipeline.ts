@@ -12,7 +12,7 @@ import { parseWikipediaDump, type WikipediaParagraph } from '../parser/index.js'
 import { OpenAIClient } from './openai-client.js';
 import { BatchProcessor } from './batch-processor.js';
 import { QdrantInserter } from './qdrant-inserter.js';
-import type { PipelineConfig, EmbeddingMetrics } from './types';
+import type { PipelineConfig, EmbeddingMetrics } from './types.js';
 import { qdrantClient } from '@wikirag/qdrant';
 
 /**

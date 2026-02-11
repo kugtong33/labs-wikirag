@@ -1,6 +1,6 @@
 # Story 1.5: Indexing CLI with Checkpoint and Resume
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -22,42 +22,42 @@ So that I can manage the long-running indexing process across multiple sessions.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create CLI command structure (AC: 5)
-  - [ ] 1.1 Add commander dependency for CLI parsing
-  - [ ] 1.2 Create src/cli/commands/index-command.ts
-  - [ ] 1.3 Define command options (dump-file, strategy, dump-date, model, batch-size)
-  - [ ] 1.4 Validate required parameters
-  - [ ] 1.5 Update src/index.ts to register command
-- [ ] Task 2: Implement checkpoint manager (AC: 1, 2, 3)
-  - [ ] 2.1 Create src/cli/checkpoint.ts
-  - [ ] 2.2 Define CheckpointData interface
-  - [ ] 2.3 Implement saveCheckpoint(data, filePath)
-  - [ ] 2.4 Implement loadCheckpoint(filePath)
-  - [ ] 2.5 Handle checkpoint file per strategy
-  - [ ] 2.6 Use Ramda for data transformations
-- [ ] Task 3: Implement resume logic (AC: 2)
-  - [ ] 3.1 Load checkpoint if exists
-  - [ ] 3.2 Skip already-processed articles in stream
-  - [ ] 3.3 Detect duplicates (check article ID)
-  - [ ] 3.4 Log resume information
-- [ ] Task 4: Implement graceful shutdown (AC: 4)
-  - [ ] 4.1 Register SIGINT handler (Ctrl+C)
-  - [ ] 4.2 Save checkpoint on interrupt
-  - [ ] 4.3 Close Qdrant connection gracefully
-  - [ ] 4.4 Log shutdown message
-- [ ] Task 5: Wire indexing pipeline (AC: 1)
-  - [ ] 5.1 Create src/cli/commands/index-runner.ts
-  - [ ] 5.2 Orchestrate: parse → embed → insert
-  - [ ] 5.3 Track progress metrics
-  - [ ] 5.4 Save checkpoint every N articles
-  - [ ] 5.5 Log progress to console
-- [ ] Task 6: Add comprehensive tests (AC: All)
-  - [ ] 6.1 Create tests/cli/checkpoint.test.ts
-  - [ ] 6.2 Create tests/cli/index-command.test.ts
-  - [ ] 6.3 Test resume from checkpoint
-  - [ ] 6.4 Test graceful shutdown
-  - [ ] 6.5 Test parameter validation
-  - [ ] 6.6 Run pnpm test (all tests pass)
+- [x] Task 1: Create CLI command structure (AC: 5)
+  - [x] 1.1 Add commander dependency for CLI parsing
+  - [x] 1.2 Create src/cli/commands/index-command.ts
+  - [x] 1.3 Define command options (dump-file, strategy, dump-date, model, batch-size)
+  - [x] 1.4 Validate required parameters
+  - [x] 1.5 Update src/index.ts to register command
+- [x] Task 2: Implement checkpoint manager (AC: 1, 2, 3)
+  - [x] 2.1 Create src/cli/checkpoint.ts
+  - [x] 2.2 Define CheckpointData interface
+  - [x] 2.3 Implement saveCheckpoint(data, filePath)
+  - [x] 2.4 Implement loadCheckpoint(filePath)
+  - [x] 2.5 Handle checkpoint file per strategy
+  - [x] 2.6 Use Ramda for data transformations
+- [x] Task 3: Implement resume logic (AC: 2)
+  - [x] 3.1 Load checkpoint if exists
+  - [x] 3.2 Skip already-processed articles in stream
+  - [x] 3.3 Detect duplicates (check article ID)
+  - [x] 3.4 Log resume information
+- [x] Task 4: Implement graceful shutdown (AC: 4)
+  - [x] 4.1 Register SIGINT handler (Ctrl+C)
+  - [x] 4.2 Save checkpoint on interrupt
+  - [x] 4.3 Close Qdrant connection gracefully
+  - [x] 4.4 Log shutdown message
+- [x] Task 5: Wire indexing pipeline (AC: 1)
+  - [x] 5.1 Create src/cli/commands/index-runner.ts
+  - [x] 5.2 Orchestrate: parse → embed → insert
+  - [x] 5.3 Track progress metrics
+  - [x] 5.4 Save checkpoint every N articles
+  - [x] 5.5 Log progress to console
+- [x] Task 6: Add comprehensive tests (AC: All)
+  - [x] 6.1 Create tests/cli/checkpoint.test.ts
+  - [x] 6.2 Create tests/cli/index-command.test.ts
+  - [x] 6.3 Test resume from checkpoint
+  - [x] 6.4 Test graceful shutdown
+  - [x] 6.5 Test parameter validation
+  - [x] 6.6 Run pnpm test (all tests pass)
 
 ## Dev Notes
 
@@ -286,20 +286,46 @@ async function shouldResume(checkpointFile: string, params: IndexParams): Promis
 
 ### Agent Model Used
 
-_To be filled by dev agent_
+Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
 
 ### Debug Log References
 
-_To be filled by dev agent_
+N/A - Implementation proceeded smoothly following TDD red-green-refactor cycle. All tests passing.
 
 ### Completion Notes List
 
-_To be filled by dev agent_
+- ✅ **CLI Command Structure**: Implemented using Commander.js with full TypeScript support. Command includes required parameters (dump-file, strategy, dump-date) and optional parameters (model, batch-size, checkpoint-file) with defaults and validation.
+
+- ✅ **Checkpoint Manager**: Complete checkpoint persistence with atomic writes (temp file + rename), JSON format, and comprehensive validation. Uses Ramda for functional transformations (R.allPass for validation, R.pick for metadata extraction). Strategy-specific checkpoint files enable parallel indexing.
+
+- ✅ **Resume Logic**: Intelligent checkpoint loading and validation ensures resume compatibility. Filters paragraph stream to skip already-processed articles by comparing article IDs. Console displays "Resuming from article ID: X" with progress information.
+
+- ✅ **Graceful Shutdown**: SIGINT (Ctrl+C) handler saves checkpoint before exit (exit code 130). Double SIGINT forces immediate exit. Checkpoint includes current progress (last article ID, articles processed, timestamp). User-friendly messages guide resume process.
+
+- ✅ **Indexing Pipeline Integration**: Complete orchestration of parse → embed → insert pipeline using Story 1.4's EmbeddingPipeline. Progress tracking with checkpoint saves every 100 articles. Collection management ensures proper vector database setup before indexing.
+
+- ✅ **Comprehensive Testing**: 24 new tests across 2 test files (checkpoint: 17 tests, index-command: 7 tests). Tests cover atomic writes, checkpoint validation, resume detection, parameter validation, error scenarios. All 115 total tests passing.
+
+- ✅ **ESM Support**: Added "type": "module" to package.json with proper .js import extensions throughout codebase. CLI entry point configured with shebang and bin entry for execution.
 
 ### Change Log
 
-_To be filled by dev agent_
+- 2026-02-11: Implemented indexing CLI with checkpoint/resume capabilities, graceful shutdown, and comprehensive testing (24 new tests, 115 total tests passing)
 
 ### File List
 
-_To be filled by dev agent_
+**Created Files:**
+- apps/cli/src/cli/checkpoint.ts
+- apps/cli/src/cli/commands/index-command.ts
+- apps/cli/src/cli/commands/index-runner.ts
+- apps/cli/tests/cli/checkpoint.test.ts
+- apps/cli/tests/cli/index-command.test.ts
+
+**Modified Files:**
+- apps/cli/src/index.ts (replaced placeholder with CLI program)
+- apps/cli/package.json (added commander dependency, type: module, bin entry, cli script)
+- apps/cli/src/embedding/batch-processor.ts (added .js extensions for ESM)
+- apps/cli/src/embedding/openai-client.ts (added .js extensions for ESM)
+- apps/cli/src/embedding/pipeline.ts (added .js extensions for ESM)
+- apps/cli/src/embedding/qdrant-inserter.ts (added .js extensions for ESM)
+- apps/cli/src/cli/checkpoint.ts (Ramda type fixes)

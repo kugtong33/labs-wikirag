@@ -8,9 +8,9 @@
  */
 
 import * as R from 'ramda';
-import type { EmbeddedParagraph, QdrantInsertConfig } from './types';
+import type { EmbeddedParagraph, QdrantInsertConfig } from './types.js';
 import { collectionManager, type CollectionManager } from '@wikirag/qdrant';
-import { QdrantInsertError } from './errors';
+import { QdrantInsertError } from './errors.js';
 
 // Define Qdrant client type inline to avoid import issues
 type QdrantClient = {

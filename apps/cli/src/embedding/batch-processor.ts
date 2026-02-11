@@ -13,9 +13,9 @@ import type {
   EmbeddedParagraph,
   WikipediaPayload,
   BatchEmbeddingResult,
-} from './types';
-import { OpenAIClient } from './openai-client';
-import { BatchProcessingError } from './errors';
+} from './types.js';
+import { OpenAIClient } from './openai-client.js';
+import { BatchProcessingError } from './errors.js';
 
 /**
  * Configuration for batch processing
@@ -207,12 +207,12 @@ export class BatchProcessor {
 
     // Map successful embeddings to EmbeddedParagraph objects
     const embedded = R.pipe(
-      R.map((idx: number) => ({
-        paragraph: paragraphs[idx],
-        embedding: result.embeddings[idx],
+      R.map((idx) => ({
+        paragraph: paragraphs[idx as number],
+        embedding: result.embeddings[idx as number],
       })),
       R.map(({ paragraph, embedding }) => createEmbedded(paragraph, embedding))
-    )(successfulIndices);
+    )(successfulIndices) as EmbeddedParagraph[];
 
     return embedded;
   }

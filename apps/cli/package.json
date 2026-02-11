@@ -2,14 +2,20 @@
   "name": "@wikirag/cli",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "bin": {
+    "wikirag-cli": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "vitest"
+    "test": "vitest",
+    "cli": "node dist/index.js"
   },
   "dependencies": {
     "@wikirag/core": "workspace:*",
     "@wikirag/qdrant": "workspace:*",
+    "commander": "^12.1.0",
     "fast-xml-parser": "^5.3.4",
     "openai": "^4.77.3",
     "ramda": "^0.32.0"

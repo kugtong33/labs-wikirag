@@ -9,8 +9,8 @@
 
 import OpenAI from 'openai';
 import * as R from 'ramda';
-import type { EmbeddingConfig, BatchEmbeddingResult } from './types';
-import { OpenAIApiError, RateLimitError } from './errors';
+import type { EmbeddingConfig, BatchEmbeddingResult } from './types.js';
+import { OpenAIApiError, RateLimitError } from './errors.js';
 
 /**
  * Default embedding model
