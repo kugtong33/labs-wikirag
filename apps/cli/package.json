@@ -11,6 +11,7 @@
     "@wikirag/core": "workspace:*",
     "@wikirag/qdrant": "workspace:*",
     "fast-xml-parser": "^5.3.4",
+    "openai": "^4.77.3",
     "ramda": "^0.32.0"
   },
   "devDependencies": {

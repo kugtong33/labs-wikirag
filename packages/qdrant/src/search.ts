@@ -49,7 +49,7 @@ export class SearchManager {
         id: point.id,
         score: point.score,
         payload: point.payload as WikipediaPayload,
-        vector: parseVector(point.vector),
+        vector: parseVector(point.vector) as number[] | undefined,
       });
 
       return R.map(mapPoint, response);
@@ -102,7 +102,7 @@ export class SearchManager {
         id: point.id,
         score: point.score,
         payload: point.payload as WikipediaPayload,
-        vector: parseVectorArray(point.vector),
+        vector: parseVectorArray(point.vector) as number[] | undefined,
       });
 
       return R.map(mapPointWithVector, response);
