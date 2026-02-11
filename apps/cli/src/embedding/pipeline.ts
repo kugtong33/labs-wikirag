@@ -55,9 +55,12 @@ export class EmbeddingPipeline {
     this.config = {
       ...config,
       logInterval: config.logInterval ?? DEFAULT_LOG_INTERVAL,
+      totalExpectedParagraphs: config.totalExpectedParagraphs,
     };
 
     this.metrics = this.initializeMetrics();
+
+    this.validateCollectionName();
   }
 
   /**
@@ -118,6 +121,46 @@ export class EmbeddingPipeline {
   }
 
   /**
+   * Run the embedding pipeline with a provided paragraph stream
+   *
+   * @param paragraphs - Async iterable of parsed paragraphs
+   * @returns Final metrics
+   */
+  public async runWithParagraphs(
+    paragraphs: AsyncIterable<WikipediaParagraph>
+  ): Promise<EmbeddingMetrics> {
+    try {
+      const openaiClient = OpenAIClient.getInstance(this.config.embedding);
+      const batchProcessor = new BatchProcessor({
+        dumpVersion: this.config.dumpVersion,
+        embeddingModel: this.config.embedding.model ?? 'text-embedding-3-small',
+        client: openaiClient,
+        batchSize: this.config.embedding.batchSize,
+      });
+
+      await qdrantClient.connect();
+      const qdrantNativeClient = qdrantClient.getClient();
+      const qdrantInserter = new QdrantInserter(
+        this.config.qdrant,
+        qdrantNativeClient
+      );
+
+      const embeddedBatches = batchProcessor.processBatches(paragraphs);
+      for await (const result of qdrantInserter.insertBatches(embeddedBatches)) {
+        this.updateMetrics(result.count, result.batchSize, batchProcessor.getMetrics());
+        this.maybeLogProgress();
+      }
+
+      this.finalizeMetrics();
+      return this.metrics;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Pipeline failed: ${message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Run the streaming pipeline
    *
    * Uses async generators for memory-efficient streaming.
@@ -139,7 +182,7 @@ export class EmbeddingPipeline {
 
     // Stage 3: Insert into Qdrant and track progress
     for await (const result of qdrantInserter.insertBatches(embeddedBatches)) {
-      this.updateMetrics(result.count, result.batchSize);
+      this.updateMetrics(result.count, result.batchSize, batchProcessor.getMetrics());
       this.maybeLogProgress();
     }
   }
@@ -150,15 +193,32 @@ export class EmbeddingPipeline {
    * @param insertedCount - Number of successfully inserted paragraphs
    * @param batchSize - Total batch size
    */
-  private updateMetrics(insertedCount: number, batchSize: number): void {
+  private updateMetrics(
+    insertedCount: number,
+    batchSize: number,
+    processorMetrics: { rateLimitHits: number; apiCallsMade: number }
+  ): void {
     this.metrics.paragraphsProcessed += batchSize;
     this.metrics.embeddingsGenerated += insertedCount;
-    this.metrics.apiCallsMade += 1; // One API call per batch
+    this.metrics.apiCallsMade = processorMetrics.apiCallsMade;
+    this.metrics.rateLimitHits = processorMetrics.rateLimitHits;
 
     // Count errors (batch size - inserted count)
     const errors = batchSize - insertedCount;
     if (errors > 0) {
       this.metrics.errors += errors;
+    }
+
+    // Update ETA estimate
+    if (this.metrics.totalExpectedParagraphs) {
+      const elapsed = Date.now() - this.metrics.startTime;
+      const rate = this.metrics.paragraphsProcessed / Math.max(elapsed / 1000, 1);
+      if (rate > 0) {
+        this.metrics.estimatedTimeRemaining = Math.max(
+          0,
+          (this.metrics.totalExpectedParagraphs / rate) * 1000 - elapsed
+        );
+      }
     }
   }
 
@@ -259,6 +319,7 @@ export class EmbeddingPipeline {
       rateLimitHits: 0,
       startTime: Date.now(),
       estimatedTimeRemaining: undefined,
+      totalExpectedParagraphs: this.config.totalExpectedParagraphs,
     };
   }
 
@@ -278,5 +339,17 @@ export class EmbeddingPipeline {
    */
   public getConfig(): Required<PipelineConfig> {
     return R.clone(this.config);
+  }
+
+  /**
+   * Validate Qdrant collection naming convention
+   */
+  private validateCollectionName(): void {
+    const expected = `wiki-${this.config.strategy}-${this.config.dumpVersion}`;
+    if (this.config.qdrant.collectionName !== expected) {
+      throw new Error(
+        `Invalid collection name: ${this.config.qdrant.collectionName}. Expected ${expected}.`
+      );
+    }
   }
 }

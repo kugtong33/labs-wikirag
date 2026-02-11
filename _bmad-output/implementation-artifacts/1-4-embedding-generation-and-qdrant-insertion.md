@@ -329,10 +329,17 @@ N/A - No debugging required. Implementation proceeded smoothly with all tests pa
 - ✅ **Comprehensive Testing**: 39 tests created across 4 test files, all passing. Tests cover: OpenAI client retry logic, batch processing edge cases, Qdrant insertion, pipeline orchestration, and error scenarios. Proper mocking of external services (OpenAI API, Qdrant client).
 
 - ✅ **TypeScript Compilation**: Resolved all type issues with Ramda functions and Qdrant client imports. Build succeeds with no errors.
+- ✅ **Metrics Accuracy**: Rate limit hits and ETA now track real values when available.
+- ✅ **Collection Naming Enforcement**: Pipeline validates `wiki-{strategy}-{dump_date}` convention.
+- ✅ **Embedding Alignment**: Success indices prevent misaligned embeddings on partial failures.
+- ✅ **Backoff Resilience**: Added jitter/cap to backoff to reduce thundering herd risk.
+- ✅ **Test Alignment**: Fixed batch mapping and updated tests/mocks to match new embedding result shape.
 
 ### Change Log
 
 - 2026-02-11: Implemented complete embedding generation and Qdrant insertion pipeline with OpenAI integration, batch processing, error handling, and comprehensive tests (91 total tests passing)
+- 2026-02-11: Review fixes — metrics accuracy, naming enforcement, batch alignment, backoff jitter
+- 2026-02-11: Test fixes — batch processor mapping and pipeline mock adjustments
 
 ### File List
 
@@ -352,3 +359,10 @@ N/A - No debugging required. Implementation proceeded smoothly with all tests pa
 **Modified Files:**
 - apps/cli/package.json (added openai@^4.77.3 dependency)
 - packages/qdrant/src/search.ts (fixed TypeScript type issues)
+- apps/cli/src/embedding/types.ts (added success indices, rate limit metrics)
+- apps/cli/src/embedding/openai-client.ts (rate-limit tracking, jittered backoff)
+- apps/cli/src/embedding/batch-processor.ts (alignment and metrics)
+- apps/cli/src/embedding/pipeline.ts (metrics updates, naming validation)
+- apps/cli/tests/embedding/openai-client.test.ts (updated assertions)
+- apps/cli/tests/embedding/batch-processor.test.ts (updated mocks)
+- apps/cli/tests/embedding/pipeline.test.ts (updated OpenAI mock)

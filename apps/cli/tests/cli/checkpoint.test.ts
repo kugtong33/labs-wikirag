@@ -261,12 +261,12 @@ describe('Checkpoint Manager', () => {
   describe('getCheckpointPath', () => {
     it('should generate checkpoint path with strategy', () => {
       const checkpointPath = getCheckpointPath('paragraph');
-      expect(checkpointPath).toBe('indexing-checkpoint-paragraph.json');
+      expect(checkpointPath).toBe('indexing-checkpoint.json');
     });
 
     it('should use custom base directory', () => {
       const checkpointPath = getCheckpointPath('chunked', '/custom/dir');
-      expect(checkpointPath).toBe('/custom/dir/indexing-checkpoint-chunked.json');
+      expect(checkpointPath).toBe('/custom/dir/indexing-checkpoint.json');
     });
   });
 

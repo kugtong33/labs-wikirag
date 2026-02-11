@@ -6,6 +6,9 @@ export interface WikipediaParagraph {
   /** Article title from <title> element */
   articleTitle: string;
 
+  /** Article ID from <id> element */
+  articleId: string;
+
   /** Section name from == Section == markers, empty string if no section */
   sectionName: string;
 

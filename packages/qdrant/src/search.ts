@@ -24,6 +24,7 @@ export class SearchManager {
     scoreThreshold?: number
   ): Promise<SearchResult[]> {
     try {
+      await this.clientWrapper.ensureConnected();
       const client = this.clientWrapper.getClient();
 
       // Perform the search
@@ -52,7 +53,8 @@ export class SearchManager {
         vector: parseVector(point.vector) as number[] | undefined,
       });
 
-      return R.map(mapPoint, response);
+      const results = R.map(mapPoint, response);
+      return R.sort(R.descend(R.prop('score')), results);
     } catch (error) {
       throw new QdrantError(
         `Failed to perform similarity search on ${collectionName}`,
@@ -79,6 +81,7 @@ export class SearchManager {
     scoreThreshold?: number
   ): Promise<SearchResult[]> {
     try {
+      await this.clientWrapper.ensureConnected();
       const client = this.clientWrapper.getClient();
 
       const response = await client.search(collectionName, {
@@ -105,7 +108,8 @@ export class SearchManager {
         vector: parseVectorArray(point.vector) as number[] | undefined,
       });
 
-      return R.map(mapPointWithVector, response);
+      const results = R.map(mapPointWithVector, response);
+      return R.sort(R.descend(R.prop('score')), results);
     } catch (error) {
       throw new QdrantError(
         `Failed to perform similarity search with vectors on ${collectionName}`,
@@ -128,6 +132,7 @@ export class SearchManager {
     limit: number = 100
   ): Promise<Array<{ id: string | number; payload: WikipediaPayload }>> {
     try {
+      await this.clientWrapper.ensureConnected();
       const client = this.clientWrapper.getClient();
 
       const response = await client.scroll(collectionName, {
@@ -159,6 +164,7 @@ export class SearchManager {
    */
   async count(collectionName: string): Promise<number> {
     try {
+      await this.clientWrapper.ensureConnected();
       const client = this.clientWrapper.getClient();
 
       const response = await client.count(collectionName);

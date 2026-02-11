@@ -25,8 +25,10 @@ describe('BatchProcessor', () => {
           [0.1, 0.2, 0.3],
           [0.4, 0.5, 0.6],
         ],
+        successIndices: [0, 1],
         failedIndices: [],
         errors: [],
+        rateLimitHits: 0,
       } as BatchEmbeddingResult);
 
       mockClient.generateEmbeddings = mockGenerateEmbeddings;
@@ -52,11 +54,25 @@ describe('BatchProcessor', () => {
     });
 
     it('should handle partial batches', async () => {
-      const mockGenerateEmbeddings = vi.fn().mockResolvedValue({
-        embeddings: [[0.1, 0.2, 0.3]],
-        failedIndices: [],
-        errors: [],
-      } as BatchEmbeddingResult);
+      const mockGenerateEmbeddings = vi
+        .fn()
+        .mockResolvedValueOnce({
+          embeddings: [
+            [0.1, 0.2, 0.3],
+            [0.4, 0.5, 0.6],
+          ],
+          successIndices: [0, 1],
+          failedIndices: [],
+          errors: [],
+          rateLimitHits: 0,
+        } as BatchEmbeddingResult)
+        .mockResolvedValueOnce({
+          embeddings: [[0.7, 0.8, 0.9]],
+          successIndices: [0],
+          failedIndices: [],
+          errors: [],
+          rateLimitHits: 0,
+        } as BatchEmbeddingResult);
 
       mockClient.generateEmbeddings = mockGenerateEmbeddings;
 
@@ -82,8 +98,10 @@ describe('BatchProcessor', () => {
     it('should combine embeddings with metadata', async () => {
       const mockGenerateEmbeddings = vi.fn().mockResolvedValue({
         embeddings: [[0.1, 0.2, 0.3]],
+        successIndices: [0],
         failedIndices: [],
         errors: [],
+        rateLimitHits: 0,
       } as BatchEmbeddingResult);
 
       mockClient.generateEmbeddings = mockGenerateEmbeddings;
@@ -99,6 +117,7 @@ describe('BatchProcessor', () => {
         {
           content: 'Test content',
           articleTitle: 'Test Article',
+          articleId: '1',
           sectionName: 'Introduction',
           paragraphPosition: 0,
         },
@@ -116,6 +135,7 @@ describe('BatchProcessor', () => {
       expect(embedded.vector).toEqual([0.1, 0.2, 0.3]);
       expect(embedded.payload).toEqual({
         articleTitle: 'Test Article',
+        articleId: '1',
         sectionName: 'Introduction',
         paragraphPosition: 0,
         dumpVersion: '20260210',
@@ -129,8 +149,10 @@ describe('BatchProcessor', () => {
           [0.1, 0.2, 0.3],
           [0.7, 0.8, 0.9],
         ],
+        successIndices: [0, 2],
         failedIndices: [1], // Second item failed
         errors: ['', 'API error'],
+        rateLimitHits: 0,
       } as BatchEmbeddingResult);
 
       mockClient.generateEmbeddings = mockGenerateEmbeddings;
@@ -170,8 +192,10 @@ describe('BatchProcessor', () => {
           [0.1, 0.2, 0.3],
           [0.4, 0.5, 0.6],
         ],
+        successIndices: [0, 1],
         failedIndices: [],
         errors: [],
+        rateLimitHits: 0,
       } as BatchEmbeddingResult);
 
       mockClient.generateEmbeddings = mockGenerateEmbeddings;
@@ -187,12 +211,14 @@ describe('BatchProcessor', () => {
         {
           content: 'Content 1',
           articleTitle: 'Article 1',
+          articleId: '1',
           sectionName: 'Section 1',
           paragraphPosition: 0,
         },
         {
           content: 'Content 2',
           articleTitle: 'Article 2',
+          articleId: '2',
           sectionName: 'Section 2',
           paragraphPosition: 1,
         },
@@ -208,8 +234,10 @@ describe('BatchProcessor', () => {
     it('should handle complete batch failure', async () => {
       const mockGenerateEmbeddings = vi.fn().mockResolvedValue({
         embeddings: [],
+        successIndices: [],
         failedIndices: [0, 1],
         errors: ['API error', 'API error'],
+        rateLimitHits: 0,
       } as BatchEmbeddingResult);
 
       mockClient.generateEmbeddings = mockGenerateEmbeddings;
@@ -238,8 +266,10 @@ describe('BatchProcessor', () => {
           // First batch fails partially
           return Promise.resolve({
             embeddings: [[0.1, 0.2, 0.3]],
+            successIndices: [0],
             failedIndices: [1],
             errors: ['', 'Temporary error'],
+            rateLimitHits: 0,
           });
         }
         // Second batch succeeds
@@ -248,8 +278,10 @@ describe('BatchProcessor', () => {
             [0.4, 0.5, 0.6],
             [0.7, 0.8, 0.9],
           ],
+          successIndices: [0, 1],
           failedIndices: [],
           errors: [],
+          rateLimitHits: 0,
         });
       });
 

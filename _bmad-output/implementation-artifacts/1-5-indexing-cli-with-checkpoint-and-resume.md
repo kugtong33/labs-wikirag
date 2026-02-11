@@ -1,6 +1,6 @@
 # Story 1.5: Indexing CLI with Checkpoint and Resume
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -307,10 +307,15 @@ N/A - Implementation proceeded smoothly following TDD red-green-refactor cycle. 
 - ✅ **Comprehensive Testing**: 24 new tests across 2 test files (checkpoint: 17 tests, index-command: 7 tests). Tests cover atomic writes, checkpoint validation, resume detection, parameter validation, error scenarios. All 115 total tests passing.
 
 - ✅ **ESM Support**: Added "type": "module" to package.json with proper .js import extensions throughout codebase. CLI entry point configured with shebang and bin entry for execution.
+- ✅ **Indexing Pipeline Wiring**: CLI now runs parse → embed → insert with checkpoint-driven progress logging.
+- ✅ **Article ID Resume**: Resume logic now uses article IDs emitted from parser paragraphs.
+- ✅ **Checkpoint Naming**: Default checkpoint file matches AC (`indexing-checkpoint.json`).
+- ✅ **Graceful Shutdown**: Best-effort Qdrant close on SIGINT.
 
 ### Change Log
 
 - 2026-02-11: Implemented indexing CLI with checkpoint/resume capabilities, graceful shutdown, and comprehensive testing (24 new tests, 115 total tests passing)
+- 2026-02-11: Review fixes — pipeline execution, article ID resume, checkpoint naming, progress logging, graceful shutdown close
 
 ### File List
 
@@ -329,3 +334,14 @@ N/A - Implementation proceeded smoothly following TDD red-green-refactor cycle. 
 - apps/cli/src/embedding/pipeline.ts (added .js extensions for ESM)
 - apps/cli/src/embedding/qdrant-inserter.ts (added .js extensions for ESM)
 - apps/cli/src/cli/checkpoint.ts (Ramda type fixes)
+- apps/cli/src/parser/types.ts (added articleId)
+- apps/cli/src/parser/wikipedia-parser.ts (populate articleId)
+- apps/cli/src/embedding/types.ts (articleId payload)
+- apps/cli/src/embedding/batch-processor.ts (articleId propagation)
+- apps/cli/src/embedding/qdrant-inserter.ts (articleId in IDs)
+- apps/cli/src/cli/checkpoint.ts (default checkpoint name)
+- apps/cli/src/cli/commands/index-runner.ts (pipeline execution, progress logging)
+- apps/cli/tests/cli/checkpoint.test.ts (updated expectations)
+- apps/cli/tests/parser/wikipedia-parser.test.ts (articleId assertions)
+- apps/cli/tests/embedding/batch-processor.test.ts (articleId in fixtures)
+- apps/cli/tests/embedding/pipeline.test.ts (articleId in fixtures)

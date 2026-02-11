@@ -8,7 +8,16 @@ const cleanWikiLinks = R.replace(/\[\[(?:[^|\]]+\|)?([^\]]+)\]\]/g, '$1');
 /**
  * Remove wiki templates: {{anything}}
  */
-const removeTemplates = R.replace(/\{\{[^}]+\}\}/g, '');
+const removeTemplatesOnce = R.replace(/\{\{[^{}]*\}\}/g, '');
+
+/**
+ * Remove nested templates by repeatedly applying the regex
+ */
+const removeTemplates = (input: string): string => {
+  const stripOnce = (text: string) => removeTemplatesOnce(text);
+  const isStable = (text: string) => stripOnce(text) === text;
+  return R.until(isStable, stripOnce)(input);
+};
 
 /**
  * Remove reference tags: <ref>...</ref> or <ref />

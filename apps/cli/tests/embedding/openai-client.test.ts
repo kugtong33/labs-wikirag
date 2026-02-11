@@ -84,8 +84,10 @@ describe('OpenAIClient', () => {
       expect(result.embeddings).toHaveLength(2);
       expect(result.embeddings[0]).toEqual([0.1, 0.2, 0.3]);
       expect(result.embeddings[1]).toEqual([0.4, 0.5, 0.6]);
+      expect(result.successIndices).toEqual([0, 1]);
       expect(result.failedIndices).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
+      expect(result.rateLimitHits).toBe(0);
 
       expect(mockCreate).toHaveBeenCalledWith({
         model: 'text-embedding-3-small',
@@ -99,8 +101,10 @@ describe('OpenAIClient', () => {
       const result = await client.generateEmbeddings([]);
 
       expect(result.embeddings).toHaveLength(0);
+      expect(result.successIndices).toHaveLength(0);
       expect(result.failedIndices).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
+      expect(result.rateLimitHits).toBe(0);
 
       // Should not call API for empty input
       expect(mockCreate).not.toHaveBeenCalled();
@@ -123,6 +127,7 @@ describe('OpenAIClient', () => {
       expect(result.embeddings[0]).toEqual([0.1, 0.2, 0.3]);
       expect(result.embeddings[1]).toEqual([0.4, 0.5, 0.6]);
       expect(result.embeddings[2]).toEqual([0.7, 0.8, 0.9]);
+      expect(result.successIndices).toEqual([0, 1, 2]);
     });
 
     it('should retry on transient errors', async () => {
@@ -136,6 +141,7 @@ describe('OpenAIClient', () => {
       const result = await client.generateEmbeddings(['text1']);
 
       expect(result.embeddings).toHaveLength(1);
+      expect(result.successIndices).toEqual([0]);
       expect(mockCreate).toHaveBeenCalledTimes(2);
     });
 
@@ -152,6 +158,8 @@ describe('OpenAIClient', () => {
       const result = await client.generateEmbeddings(['text1']);
 
       expect(result.embeddings).toHaveLength(1);
+      expect(result.successIndices).toEqual([0]);
+      expect(result.rateLimitHits).toBe(1);
       expect(mockCreate).toHaveBeenCalledTimes(2);
     });
 
@@ -164,6 +172,7 @@ describe('OpenAIClient', () => {
       const result = await client.generateEmbeddings(texts);
 
       expect(result.embeddings).toHaveLength(0);
+      expect(result.successIndices).toEqual([]);
       expect(result.failedIndices).toEqual([0, 1]);
       expect(result.errors).toHaveLength(2);
       expect(result.errors[0]).toContain('API error');
@@ -180,6 +189,7 @@ describe('OpenAIClient', () => {
       const client = OpenAIClient.getInstance(config);
       const result = await client.generateEmbeddings(['text1']);
 
+      expect(result.successIndices).toEqual([]);
       expect(result.failedIndices).toEqual([0]);
       expect(mockCreate).toHaveBeenCalledTimes(4); // Initial + 3 retries
     });

@@ -45,7 +45,7 @@ development_status:
   1-2-qdrant-client-wrapper-and-collection-management: done
   1-3-wikipedia-xml-streaming-parser: done
   1-4-embedding-generation-and-qdrant-insertion: done
-  1-5-indexing-cli-with-checkpoint-and-resume: review
+  1-5-indexing-cli-with-checkpoint-and-resume: in-progress
   epic-1-retrospective: optional
 
   epic-2: backlog

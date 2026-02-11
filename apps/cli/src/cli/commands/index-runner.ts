@@ -32,6 +32,7 @@ interface IndexingState {
   checkpoint: CheckpointData;
   isShuttingDown: boolean;
   articlesInBatch: number;
+  lastSeenArticleId: string;
 }
 
 /**
@@ -76,6 +77,7 @@ export async function runIndexing(options: IndexCommandOptions): Promise<void> {
     checkpoint,
     isShuttingDown: false,
     articlesInBatch: 0,
+    lastSeenArticleId: checkpoint.lastArticleId,
   };
 
   // Set up graceful shutdown handler
@@ -200,15 +202,15 @@ async function runIndexingPipeline(
   checkpointFile: string,
   isResume: boolean
 ): Promise<void> {
-  // Create filtered paragraph stream
   const paragraphs = parseWikipediaDump(options.dumpFile);
   const filteredParagraphs = filterParagraphs(
     paragraphs,
     state.checkpoint.lastArticleId,
-    isResume
+    isResume,
+    state,
+    checkpointFile
   );
 
-  // Create embedding pipeline
   const pipeline = new EmbeddingPipeline({
     dumpVersion: options.dumpDate,
     strategy: options.strategy,
@@ -223,39 +225,11 @@ async function runIndexingPipeline(
     logInterval: DEFAULT_CHECKPOINT_INTERVAL,
   });
 
-  // Process paragraphs with checkpoint saving
-  let articleCount = 0;
-  let currentArticleId = state.checkpoint.lastArticleId;
-
-  for await (const paragraph of filteredParagraphs) {
-    // Check for shutdown signal
-    if (state.isShuttingDown) {
-      break;
-    }
-
-    // Track article changes
-    if (paragraph.articleTitle !== currentArticleId) {
-      currentArticleId = paragraph.articleTitle;
-      articleCount++;
-      state.articlesInBatch++;
-
-      // Save checkpoint periodically
-      if (state.articlesInBatch >= DEFAULT_CHECKPOINT_INTERVAL) {
-        state.checkpoint.lastArticleId = currentArticleId;
-        state.checkpoint.articlesProcessed += state.articlesInBatch;
-        state.checkpoint.timestamp = new Date().toISOString();
-
-        await saveCheckpoint(state.checkpoint, checkpointFile);
-        state.articlesInBatch = 0;
-      }
-    }
-  }
+  await pipeline.runWithParagraphs(filteredParagraphs);
 
   // Save final checkpoint
-  state.checkpoint.lastArticleId = currentArticleId;
-  state.checkpoint.articlesProcessed += state.articlesInBatch;
+  state.checkpoint.lastArticleId = state.lastSeenArticleId;
   state.checkpoint.timestamp = new Date().toISOString();
-
   await saveCheckpoint(state.checkpoint, checkpointFile);
 }
 
@@ -270,11 +244,16 @@ async function runIndexingPipeline(
 async function* filterParagraphs(
   paragraphs: AsyncIterable<WikipediaParagraph>,
   lastArticleId: string,
-  isResume: boolean
+  isResume: boolean,
+  state: IndexingState,
+  checkpointFile: string
 ): AsyncGenerator<WikipediaParagraph> {
   if (!isResume) {
-    // Not resuming, yield all paragraphs
-    yield* paragraphs;
+    for await (const paragraph of paragraphs) {
+      if (state.isShuttingDown) break;
+      yield* handleProgress(paragraph, state, checkpointFile);
+      yield paragraph;
+    }
     return;
   }
 
@@ -283,13 +262,39 @@ async function* filterParagraphs(
 
   for await (const paragraph of paragraphs) {
     if (!foundLastArticle) {
-      if (paragraph.articleTitle === lastArticleId) {
+      if (paragraph.articleId === lastArticleId) {
         foundLastArticle = true;
       }
       continue; // Skip this paragraph
     }
 
+    if (state.isShuttingDown) break;
+    yield* handleProgress(paragraph, state, checkpointFile);
     yield paragraph;
+  }
+}
+
+async function* handleProgress(
+  paragraph: WikipediaParagraph,
+  state: IndexingState,
+  checkpointFile: string
+): AsyncGenerator<WikipediaParagraph> {
+  if (paragraph.articleId !== state.lastSeenArticleId) {
+    state.lastSeenArticleId = paragraph.articleId;
+    state.articlesInBatch += 1;
+
+    if (state.articlesInBatch >= DEFAULT_CHECKPOINT_INTERVAL) {
+      state.checkpoint.lastArticleId = state.lastSeenArticleId;
+      state.checkpoint.articlesProcessed += state.articlesInBatch;
+      state.checkpoint.timestamp = new Date().toISOString();
+
+      console.log(
+        `Progress: ${state.checkpoint.articlesProcessed} articles processed`
+      );
+
+      await saveCheckpoint(state.checkpoint, checkpointFile);
+      state.articlesInBatch = 0;
+    }
   }
 }
 
@@ -319,6 +324,16 @@ function setupGracefulShutdown(
       state.checkpoint.timestamp = new Date().toISOString();
 
       await saveCheckpoint(state.checkpoint, checkpointFile);
+
+      // Best-effort close Qdrant connection
+      try {
+        const client = qdrantClient.getClient();
+        if (typeof (client as any).close === 'function') {
+          await (client as any).close();
+        }
+      } catch {
+        // Ignore close errors
+      }
 
       console.log('✅ Checkpoint saved successfully');
       console.log(`   Last article ID: ${state.checkpoint.lastArticleId}`);

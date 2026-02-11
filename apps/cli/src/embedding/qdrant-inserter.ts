@@ -170,7 +170,7 @@ export class QdrantInserter {
    * @returns Unique point ID
    */
   private generatePointId(paragraph: EmbeddedParagraph, batchIndex: number): string {
-    const { articleTitle, sectionName, paragraphPosition } = paragraph.payload;
+    const { articleTitle, articleId, sectionName, paragraphPosition } = paragraph.payload;
 
     // URL-safe encoding using Ramda
     const encode = R.pipe(
@@ -182,7 +182,7 @@ export class QdrantInserter {
     const encodedSection = encode(sectionName || 'intro');
     const globalIndex = this.insertedCount + batchIndex;
 
-    return `${encodedTitle}:${encodedSection}:${paragraphPosition}:${globalIndex}`;
+    return `${articleId}:${encodedTitle}:${encodedSection}:${paragraphPosition}:${globalIndex}`;
   }
 
   /**

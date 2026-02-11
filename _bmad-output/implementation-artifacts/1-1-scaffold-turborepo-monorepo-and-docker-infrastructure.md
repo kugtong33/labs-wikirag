@@ -45,7 +45,7 @@ so that I have a running development environment with Qdrant ready to accept dat
   - [x] 5.3 Create `apps/cli/.env.example` with CLI-specific vars (OPENAI_API_KEY, QDRANT_URL)
 - [x] Task 6: Verify end-to-end (AC: 1)
   - [x] 6.1 Run `pnpm install` — all workspace dependencies resolve
-  - [x] 6.2 Run `docker compose up` — Qdrant starts on port 6333 (✅ Verified 2026-02-09)
+  - [x] 6.2 Run `docker compose up` — Qdrant starts on port 6333 (✅ Verified 2026-02-11)
   - [x] 6.3 Run `pnpm build` — Turborepo builds all packages
 
 ## Dev Notes
@@ -178,7 +178,7 @@ Claude Opus 4.6
 - Initial `pnpm build` failed: `console` not found in Node.js packages (missing `@types/node`)
 - Fixed by adding `@types/node@^25.2.2` as devDependency to api, cli, core, qdrant packages
 - Second `pnpm build` succeeded: 5 packages built (1 cached), 2.481s
-- Docker not available in WSL2 environment — `docker-compose.yml` validated as correct YAML
+- Docker used successfully — Qdrant started and health endpoint responded (healthcheck command updated for bash)
 
 ### Completion Notes List
 
@@ -192,6 +192,8 @@ Claude Opus 4.6
 ### Change Log
 
 - 2026-02-08: Story 1.1 implemented — monorepo scaffold, Docker infrastructure, environment config
+- 2026-02-11: Review fixes — corrected package entrypoints, added web env example, updated checkpoint ignore, removed unverified Docker claim
+- 2026-02-11: Verified Qdrant startup and updated healthcheck command
 
 ### File List
 
@@ -200,23 +202,25 @@ Claude Opus 4.6
 - turbo.json (new)
 - pnpm-lock.yaml (new)
 - docker-compose.yml (new)
+- docker-compose.yml (modified - healthcheck command updated)
 - .env.example (new)
 - .gitignore (modified)
-- apps/api/package.json (new)
+- apps/api/package.json (modified)
 - apps/api/tsconfig.json (new)
 - apps/api/.env.example (new)
 - apps/api/src/index.ts (new)
 - apps/web/package.json (new)
 - apps/web/tsconfig.json (new)
+- apps/web/.env.example (new)
 - apps/web/src/main.tsx (new)
 - apps/cli/package.json (new)
 - apps/cli/tsconfig.json (new)
 - apps/cli/.env.example (new)
 - apps/cli/src/index.ts (new)
-- packages/core/package.json (new)
+- packages/core/package.json (modified)
 - packages/core/tsconfig.json (new)
 - packages/core/src/index.ts (new)
-- packages/qdrant/package.json (new)
+- packages/qdrant/package.json (modified)
 - packages/qdrant/tsconfig.json (new)
 - packages/qdrant/src/index.ts (new)
 - packages/tsconfig/package.json (new)

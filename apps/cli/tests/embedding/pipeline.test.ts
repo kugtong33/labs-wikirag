@@ -27,8 +27,14 @@ vi.mock('@wikirag/qdrant', () => ({
 }));
 
 // Mock OpenAI
-const mockCreate = vi.fn().mockResolvedValue({
-  data: [{ embedding: [0.1, 0.2, 0.3], index: 0 }],
+const mockCreate = vi.fn().mockImplementation(({ input }) => {
+  const inputs = Array.isArray(input) ? input : [input];
+  return Promise.resolve({
+    data: inputs.map((_, index) => ({
+      embedding: [0.1 + index, 0.2 + index, 0.3 + index],
+      index,
+    })),
+  });
 });
 
 vi.mock('openai', () => {
@@ -87,12 +93,14 @@ describe('EmbeddingPipeline', () => {
         yield {
           content: 'Paragraph 1',
           articleTitle: 'Article 1',
+          articleId: '1',
           sectionName: 'Section 1',
           paragraphPosition: 0,
         };
         yield {
           content: 'Paragraph 2',
           articleTitle: 'Article 1',
+          articleId: '1',
           sectionName: 'Section 1',
           paragraphPosition: 1,
         };
@@ -117,6 +125,7 @@ describe('EmbeddingPipeline', () => {
         yield {
           content: 'Test',
           articleTitle: 'Test',
+          articleId: '1',
           sectionName: 'Test',
           paragraphPosition: 0,
         };
@@ -138,6 +147,7 @@ describe('EmbeddingPipeline', () => {
         yield {
           content: 'Test',
           articleTitle: 'Test',
+          articleId: '1',
           sectionName: 'Test',
           paragraphPosition: 0,
         };
@@ -163,6 +173,7 @@ describe('EmbeddingPipeline', () => {
           yield {
             content: `Paragraph ${i}`,
             articleTitle: 'Article',
+            articleId: '1',
             sectionName: 'Section',
             paragraphPosition: i,
           };
@@ -275,6 +286,7 @@ describe('EmbeddingPipeline', () => {
         yield {
           content: 'Test',
           articleTitle: 'Test',
+          articleId: '1',
           sectionName: 'Test',
           paragraphPosition: 0,
         };

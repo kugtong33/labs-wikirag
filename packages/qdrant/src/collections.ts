@@ -36,6 +36,7 @@ export class CollectionManager {
     const collectionName = this.formatCollectionName(strategy, dumpDate);
 
     try {
+      await this.clientWrapper.ensureConnected();
       const client = this.clientWrapper.getClient();
 
       // Check if collection already exists
@@ -84,6 +85,7 @@ export class CollectionManager {
    */
   async collectionExists(collectionName: string): Promise<boolean> {
     try {
+      await this.clientWrapper.ensureConnected();
       const client = this.clientWrapper.getClient();
       const response = await client.getCollections();
 
@@ -104,6 +106,7 @@ export class CollectionManager {
    */
   async deleteCollection(collectionName: string): Promise<void> {
     try {
+      await this.clientWrapper.ensureConnected();
       const client = this.clientWrapper.getClient();
 
       // Check if collection exists before deleting
@@ -136,6 +139,7 @@ export class CollectionManager {
    */
   async listCollections(): Promise<string[]> {
     try {
+      await this.clientWrapper.ensureConnected();
       const client = this.clientWrapper.getClient();
       const response = await client.getCollections();
 
@@ -161,6 +165,7 @@ export class CollectionManager {
     distance: string;
   }> {
     try {
+      await this.clientWrapper.ensureConnected();
       const client = this.clientWrapper.getClient();
       const info = await client.getCollection(collectionName);
 

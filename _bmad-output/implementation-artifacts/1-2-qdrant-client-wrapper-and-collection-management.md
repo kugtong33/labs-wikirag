@@ -256,10 +256,14 @@ Claude Sonnet 4.5
 - Added singleton exports for easy consumption (qdrantClient, collectionManager, searchManager)
 - Created 14 unit tests covering client, collections, and search functionality
 - Added vitest configuration for test runner
+- Added auto-connect guards for collection/search operations
+- Enforced explicit score sorting in similarity search
+- Strengthened tests for collection operations and search ordering
 
 ### Change Log
 
 - 2026-02-09: Story 1.2 implemented — Qdrant client wrapper and collection management complete
+- 2026-02-11: Review fixes — ESM alignment, auto-connect on usage, explicit score sorting, stronger tests
 
 ### File List
 
@@ -273,3 +277,9 @@ Claude Sonnet 4.5
 - packages/qdrant/tests/client.test.ts (new)
 - packages/qdrant/tests/collections.test.ts (new)
 - packages/qdrant/tests/search.test.ts (new)
+- packages/qdrant/package.json (modified - set type: module)
+- packages/qdrant/src/client.ts (modified - ensureConnected)
+- packages/qdrant/src/collections.ts (modified - ensureConnected)
+- packages/qdrant/src/search.ts (modified - explicit score sort, ensureConnected)
+- packages/qdrant/tests/collections.test.ts (modified - real operation coverage)
+- packages/qdrant/tests/search.test.ts (modified - ordering test with mocked search)

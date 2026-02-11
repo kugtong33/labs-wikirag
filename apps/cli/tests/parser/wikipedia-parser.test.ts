@@ -16,6 +16,7 @@ describe('WikipediaParser', () => {
 
       expect(paragraphs.length).toBeGreaterThan(0);
       expect(paragraphs[0].articleTitle).toBe('Test Article');
+      expect(paragraphs[0].articleId).toBe('1');
       expect(paragraphs[0].sectionName).toBe('');
       expect(paragraphs[0].content).toContain('introduction paragraph');
     });
@@ -63,6 +64,7 @@ describe('WikipediaParser', () => {
       // Check each section has sequential numbering
       Object.values(sections).forEach(sectionParagraphs => {
         sectionParagraphs.forEach((para, index) => {
+          expect(para.articleId).toBeDefined();
           expect(para.paragraphPosition).toBe(index);
         });
       });
@@ -166,6 +168,34 @@ describe('WikipediaParser', () => {
       }
 
       expect(count).toBe(2);
+    });
+
+    it('should handle very large pages without failing', async () => {
+      const largeText = 'A'.repeat(12 * 1024 * 1024); // 12MB
+      const largeXml = `<?xml version="1.0" encoding="UTF-8"?>
+<mediawiki>
+  <page>
+    <title>Large Article</title>
+    <id>999</id>
+    <revision>
+      <text>${largeText}</text>
+    </revision>
+  </page>
+</mediawiki>`;
+
+      const fs = await import('fs');
+      const tmpPath = path.join(fixturesDir, 'large-page-temp.xml');
+      fs.writeFileSync(tmpPath, largeXml);
+
+      let seen = false;
+      for await (const paragraph of parseWikipediaDump(tmpPath, { minParagraphLength: 10 })) {
+        expect(paragraph.articleTitle).toBe('Large Article');
+        seen = true;
+        break;
+      }
+
+      expect(seen).toBe(true);
+      fs.unlinkSync(tmpPath);
     });
 
     describe('edge cases', () => {

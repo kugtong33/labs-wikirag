@@ -308,10 +308,14 @@ Claude Sonnet 4.5
 - Custom WikipediaParserError following QdrantError pattern
 - Redirect detection and skipping functionality
 - Configurable parser options (skipRedirects, minParagraphLength, debug)
+- Improved page extraction to avoid regex brittleness and support large pages
+- Strengthened wikitext template removal for nested templates
+- Added large-page handling test coverage
 
 ### Change Log
 
 - 2026-02-10: Story 1.3 implemented - Wikipedia XML streaming parser complete
+- 2026-02-11: Review fixes — large page support, safer extraction, stronger cleaning/tests
 
 ### File List
 
@@ -334,3 +338,6 @@ New files created:
 - apps/cli/tests/parser/fixtures/redirect-page.xml (new)
 - apps/cli/tests/parser/fixtures/multi-section-article.xml (new)
 - apps/cli/tests/parser/fixtures/complex-wikitext.xml (new)
+- apps/cli/src/parser/xml-stream.ts (modified - index-based extraction, larger buffer)
+- apps/cli/src/parser/wikitext-cleaner.ts (modified - nested template handling)
+- apps/cli/tests/parser/wikipedia-parser.test.ts (modified - large page test)

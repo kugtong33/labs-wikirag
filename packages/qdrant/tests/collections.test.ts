@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { CollectionManager, QdrantClientWrapper } from '../src/index.js';
+import { describe, it, expect, vi } from 'vitest';
+import { CollectionManager, QdrantError, QdrantClientWrapper } from '../src/index.js';
 
 describe('CollectionManager', () => {
   describe('collection naming convention', () => {
@@ -48,6 +48,67 @@ describe('CollectionManager', () => {
       metrics.forEach((metric) => {
         expect(['Cosine', 'Euclid', 'Dot']).toContain(metric);
       });
+    });
+  });
+
+  describe('collection operations', () => {
+    const createMockWrapper = (collections: Array<{ name: string }> = []) => {
+      const mockClient = {
+        getCollections: vi.fn().mockResolvedValue({ collections }),
+        createCollection: vi.fn().mockResolvedValue({ status: 'ok' }),
+        deleteCollection: vi.fn().mockResolvedValue({ status: 'ok' }),
+      };
+
+      const wrapper = {
+        ensureConnected: vi.fn().mockResolvedValue(undefined),
+        getClient: vi.fn().mockReturnValue(mockClient),
+      } as unknown as QdrantClientWrapper;
+
+      return { wrapper, mockClient };
+    };
+
+    it('should return true when collection exists', async () => {
+      const { wrapper } = createMockWrapper([{ name: 'wiki-paragraph-20260209' }]);
+      const manager = new CollectionManager(wrapper);
+
+      await expect(
+        manager.collectionExists('wiki-paragraph-20260209')
+      ).resolves.toBe(true);
+    });
+
+    it('should return false when collection does not exist', async () => {
+      const { wrapper } = createMockWrapper([]);
+      const manager = new CollectionManager(wrapper);
+
+      await expect(
+        manager.collectionExists('wiki-paragraph-20260209')
+      ).resolves.toBe(false);
+    });
+
+    it('should create collection when it does not exist', async () => {
+      const { wrapper, mockClient } = createMockWrapper([]);
+      const manager = new CollectionManager(wrapper);
+
+      const name = await manager.createCollection('paragraph', '20260209', 1536);
+      expect(name).toBe('wiki-paragraph-20260209');
+      expect(mockClient.createCollection).toHaveBeenCalled();
+    });
+
+    it('should throw when creating a collection that already exists', async () => {
+      const { wrapper } = createMockWrapper([{ name: 'wiki-paragraph-20260209' }]);
+      const manager = new CollectionManager(wrapper);
+
+      await expect(
+        manager.createCollection('paragraph', '20260209', 1536)
+      ).rejects.toThrow(QdrantError);
+    });
+
+    it('should delete collection when it exists', async () => {
+      const { wrapper, mockClient } = createMockWrapper([{ name: 'wiki-paragraph-20260209' }]);
+      const manager = new CollectionManager(wrapper);
+
+      await manager.deleteCollection('wiki-paragraph-20260209');
+      expect(mockClient.deleteCollection).toHaveBeenCalledWith('wiki-paragraph-20260209');
     });
   });
 });

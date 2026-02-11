@@ -90,13 +90,15 @@ export class OpenAIClient {
     if (R.isEmpty(texts)) {
       return {
         embeddings: [],
+        successIndices: [],
         failedIndices: [],
         errors: [],
+        rateLimitHits: 0,
       };
     }
 
     try {
-      const response = await this.withRetry(() =>
+      const { response, rateLimitHits } = await this.withRetry(() =>
         this.client.embeddings.create({
           model: this.config.model,
           input: texts,
@@ -110,11 +112,14 @@ export class OpenAIClient {
         response.data as Array<{ embedding: number[]; index: number }>
       );
       const embeddings = R.pluck('embedding', sorted) as number[][];
+      const successIndices = R.pluck('index', sorted) as number[];
 
       return {
         embeddings,
+        successIndices,
         failedIndices: [],
         errors: [],
+        rateLimitHits,
       };
     } catch (error) {
       // If entire batch fails, return error for all items
@@ -123,8 +128,10 @@ export class OpenAIClient {
 
       return {
         embeddings: [],
+        successIndices: [],
         failedIndices,
         errors: R.repeat(errorMessage, texts.length),
+        rateLimitHits: 0,
       };
     }
   }
@@ -143,12 +150,16 @@ export class OpenAIClient {
    * @throws {RateLimitError} If rate limit exceeded after max retries
    * @throws {OpenAIApiError} If API call fails after max retries
    */
-  private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  private async withRetry<T>(
+    fn: () => Promise<T>
+  ): Promise<{ response: T; rateLimitHits: number }> {
     let lastError: Error | null = null;
+    let rateLimitHits = 0;
 
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
       try {
-        return await fn();
+        const response = await fn();
+        return { response, rateLimitHits };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
@@ -162,10 +173,12 @@ export class OpenAIClient {
         const retryAfter = this.extractRetryAfter(error);
 
         if (isRateLimit) {
+          rateLimitHits += 1;
           // Use Retry-After header if available, otherwise exponential backoff
-          const delay = retryAfter
+          const baseDelay = retryAfter
             ? retryAfter * 1000
             : this.config.baseDelay * Math.pow(2, attempt);
+          const delay = this.applyJitter(baseDelay);
 
           console.warn(
             `Rate limit hit, retrying after ${delay}ms (attempt ${attempt + 1}/${this.config.maxRetries})`
@@ -176,7 +189,9 @@ export class OpenAIClient {
         }
 
         // For other errors, use exponential backoff
-        const delay = this.config.baseDelay * Math.pow(2, attempt);
+        const delay = this.applyJitter(
+          this.config.baseDelay * Math.pow(2, attempt)
+        );
         console.warn(
           `API error, retrying after ${delay}ms (attempt ${attempt + 1}/${this.config.maxRetries}): ${lastError.message}`
         );
@@ -244,6 +259,16 @@ export class OpenAIClient {
    */
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Apply jitter and cap to backoff delays
+   */
+  private applyJitter(delay: number): number {
+    const maxDelay = 60_000;
+    const capped = Math.min(delay, maxDelay);
+    const jitter = Math.floor(Math.random() * 250);
+    return capped + jitter;
   }
 
   /**

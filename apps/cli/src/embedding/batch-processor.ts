@@ -60,6 +60,7 @@ const DEFAULT_BATCH_SIZE = 100;
  */
 export class BatchProcessor {
   private config: Required<BatchProcessorConfig>;
+  private metrics: { apiCallsMade: number; rateLimitHits: number };
 
   constructor(config: BatchProcessorConfig) {
     this.config = {
@@ -68,6 +69,7 @@ export class BatchProcessor {
       embeddingModel: config.embeddingModel,
       client: config.client,
     };
+    this.metrics = { apiCallsMade: 0, rateLimitHits: 0 };
   }
 
   /**
@@ -125,6 +127,8 @@ export class BatchProcessor {
 
       // Generate embeddings
       const result = await this.config.client.generateEmbeddings(texts);
+      this.metrics.apiCallsMade += 1;
+      this.metrics.rateLimitHits += result.rateLimitHits;
 
       // Handle complete batch failure
       if (result.embeddings.length === 0) {
@@ -193,11 +197,13 @@ export class BatchProcessor {
     paragraphs: ParsedParagraph[],
     result: BatchEmbeddingResult
   ): EmbeddedParagraph[] {
-    // Filter out failed indices
-    const successfulIndices = R.pipe(
-      R.range(0),
-      R.reject((idx: number) => R.includes(idx, result.failedIndices))
-    )(paragraphs.length);
+    const successfulIndices =
+      result.successIndices.length > 0
+        ? result.successIndices
+        : R.pipe(
+            R.range(0),
+            R.reject((idx: number) => R.includes(idx, result.failedIndices))
+          )(paragraphs.length);
 
     // Create metadata transformation function using Ramda curry
     const createEmbedded = this.createMetadataTransformer(
@@ -206,13 +212,14 @@ export class BatchProcessor {
     );
 
     // Map successful embeddings to EmbeddedParagraph objects
-    const embedded = R.pipe(
-      R.map((idx) => ({
-        paragraph: paragraphs[idx as number],
-        embedding: result.embeddings[idx as number],
-      })),
-      R.map(({ paragraph, embedding }) => createEmbedded(paragraph, embedding))
-    )(successfulIndices) as EmbeddedParagraph[];
+    const embedded = R.addIndex<number, EmbeddedParagraph>(R.map)(
+      (idx: number, successIdx: number) =>
+        createEmbedded(
+          paragraphs[idx as number],
+          result.embeddings[successIdx as number]
+        ),
+      successfulIndices
+    );
 
     return embedded;
   }
@@ -253,6 +260,7 @@ export class BatchProcessor {
   ): WikipediaPayload {
     return {
       articleTitle: paragraph.articleTitle,
+      articleId: paragraph.articleId,
       sectionName: paragraph.sectionName,
       paragraphPosition: paragraph.paragraphPosition,
       dumpVersion,
@@ -267,5 +275,12 @@ export class BatchProcessor {
    */
   public getConfig(): Required<BatchProcessorConfig> {
     return R.clone(this.config);
+  }
+
+  /**
+   * Get current batch processing metrics
+   */
+  public getMetrics(): { apiCallsMade: number; rateLimitHits: number } {
+    return R.clone(this.metrics);
   }
 }

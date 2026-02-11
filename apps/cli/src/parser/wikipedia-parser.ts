@@ -88,7 +88,10 @@ export async function* parseWikipediaDump(
 
           // Yield each paragraph individually (streaming behavior)
           for (const paragraph of paragraphs) {
-            yield paragraph;
+            yield {
+              ...paragraph,
+              articleId: page.id,
+            };
           }
         }
 

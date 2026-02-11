@@ -10,6 +10,7 @@
 export interface ParsedParagraph {
   content: string;
   articleTitle: string;
+  articleId: string;
   sectionName: string;
   paragraphPosition: number;
 }
@@ -27,6 +28,7 @@ export interface EmbeddedParagraph {
  */
 export interface WikipediaPayload {
   articleTitle: string;
+  articleId: string;
   sectionName: string;
   paragraphPosition: number;
   dumpVersion: string;
@@ -77,6 +79,8 @@ export interface EmbeddingMetrics {
   startTime: number;
   /** Estimated time remaining in ms */
   estimatedTimeRemaining?: number;
+  /** Optional total expected paragraph count */
+  totalExpectedParagraphs?: number;
 }
 
 /**
@@ -85,10 +89,14 @@ export interface EmbeddingMetrics {
 export interface BatchEmbeddingResult {
   /** Successfully generated embeddings */
   embeddings: number[][];
+  /** Indices of successful items in the original batch */
+  successIndices: number[];
   /** Indices of failed items in the batch */
   failedIndices: number[];
   /** Error messages for failed items */
   errors: string[];
+  /** Number of rate limit hits encountered */
+  rateLimitHits: number;
 }
 
 /**
@@ -105,4 +113,6 @@ export interface PipelineConfig {
   qdrant: QdrantInsertConfig;
   /** Log progress every N paragraphs (default: 1000) */
   logInterval?: number;
+  /** Optional total expected paragraph count for ETA */
+  totalExpectedParagraphs?: number;
 }

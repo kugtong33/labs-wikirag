@@ -15,6 +15,12 @@ const parser = new XMLParser({
 });
 
 /**
+ * Maximum buffer size (safety guard)
+ * Large pages exist in Wikipedia dumps; allow larger buffers to avoid hard failures.
+ */
+const MAX_BUFFER_SIZE = 200 * 1024 * 1024; // 200MB
+
+/**
  * Safely extract text content from revision element
  * Try both with and without #text node (depends on parser config)
  */
@@ -79,22 +85,25 @@ export async function* streamXmlPages(
     const stream = fs.createReadStream(filePath, { encoding: 'utf8' });
 
     let buffer = '';
-    const pageRegex = /<page>([\s\S]*?)<\/page>/g;
 
     for await (const chunk of stream) {
       buffer += chunk;
 
-      // Extract all complete <page> elements from buffer
-      let match;
-      const matches: string[] = [];
+      // Extract complete <page> elements using index scanning (safer than regex)
+      while (true) {
+        const startIndex = buffer.indexOf('<page>');
+        if (startIndex === -1) {
+          break;
+        }
 
-      // Collect all matches first (regex.exec modifies lastIndex)
-      while ((match = pageRegex.exec(buffer)) !== null) {
-        matches.push(match[0]);
-      }
+        const endIndex = buffer.indexOf('</page>', startIndex);
+        if (endIndex === -1) {
+          break;
+        }
 
-      // Process each complete page
-      for (const pageXml of matches) {
+        const pageXml = buffer.slice(startIndex, endIndex + 7);
+        buffer = buffer.slice(endIndex + 7);
+
         try {
           const pageData = parser.parse(pageXml);
 
@@ -118,16 +127,15 @@ export async function* streamXmlPages(
       }
 
       // Keep only incomplete page data in buffer
-      const lastPageEnd = buffer.lastIndexOf('</page>');
-      if (lastPageEnd !== -1) {
-        buffer = buffer.substring(lastPageEnd + 7); // 7 = length of '</page>'
+      const lastPageStart = buffer.lastIndexOf('<page>');
+      if (lastPageStart > 0) {
+        buffer = buffer.substring(lastPageStart);
       }
 
       // Prevent buffer from growing unbounded (safety check)
-      // If buffer > 10MB and no complete pages, something is wrong
-      if (buffer.length > 10 * 1024 * 1024) {
+      if (buffer.length > MAX_BUFFER_SIZE) {
         throw new WikipediaParserError(
-          'Buffer exceeded 10MB without finding complete page element',
+          `Buffer exceeded ${MAX_BUFFER_SIZE} bytes without finding complete page element`,
           'streamXmlPages'
         );
       }

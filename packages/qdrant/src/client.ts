@@ -64,6 +64,15 @@ export class QdrantClientWrapper {
   }
 
   /**
+   * Ensure the client is connected before use
+   */
+  async ensureConnected(): Promise<void> {
+    if (!this.client || !this.connected) {
+      await this.connect();
+    }
+  }
+
+  /**
    * Get the underlying Qdrant client instance
    * @throws QdrantError if not connected
    */

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { WikipediaPayload, SearchResult } from '../src/index.js';
+import { describe, it, expect, vi } from 'vitest';
+import { SearchManager, WikipediaPayload, SearchResult, QdrantClientWrapper } from '../src/index.js';
 
 describe('SearchManager', () => {
   describe('WikipediaPayload type', () => {
@@ -112,6 +112,28 @@ describe('SearchManager', () => {
       for (let i = 0; i < results.length - 1; i++) {
         expect(results[i].score).toBeGreaterThanOrEqual(results[i + 1].score);
       }
+    });
+  });
+
+  describe('similaritySearch', () => {
+    it('should sort results by score descending', async () => {
+      const mockClient = {
+        search: vi.fn().mockResolvedValue([
+          { id: 'b', score: 0.7, payload: {} },
+          { id: 'a', score: 0.9, payload: {} },
+          { id: 'c', score: 0.5, payload: {} },
+        ]),
+      };
+
+      const wrapper = {
+        ensureConnected: vi.fn().mockResolvedValue(undefined),
+        getClient: vi.fn().mockReturnValue(mockClient),
+      } as unknown as QdrantClientWrapper;
+
+      const manager = new SearchManager(wrapper);
+      const results = await manager.similaritySearch('wiki-paragraph-20260209', [0.1, 0.2]);
+
+      expect(results.map((r) => r.id)).toEqual(['a', 'b', 'c']);
     });
   });
 });

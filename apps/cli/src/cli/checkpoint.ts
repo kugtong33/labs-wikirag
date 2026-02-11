@@ -173,9 +173,9 @@ export function getCheckpointPath(
   baseDir?: string
 ): string {
   if (baseDir) {
-    return path.join(baseDir, `indexing-checkpoint-${strategy}.json`);
+    return path.join(baseDir, 'indexing-checkpoint.json');
   }
-  return `indexing-checkpoint-${strategy}.json`;
+  return 'indexing-checkpoint.json';
 }
 
 /**
