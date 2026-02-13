@@ -156,7 +156,7 @@ export async function* streamXmlPages(
             isRedirect: isRedirect(page),
             text: extractText(page),
           };
-        } catch (error) {
+        } catch {
           // Skip malformed pages
           continue;
         }

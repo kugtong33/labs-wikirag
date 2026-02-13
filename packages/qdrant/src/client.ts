@@ -58,7 +58,7 @@ export class QdrantClientWrapper {
       // Simple health check - try to list collections
       await this.client!.getCollections();
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

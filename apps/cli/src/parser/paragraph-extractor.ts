@@ -2,6 +2,8 @@ import * as R from 'ramda';
 import { cleanWikitext } from './wikitext-cleaner.js';
 import type { WikipediaParagraph } from './types.js';
 
+type ParagraphWithoutArticleId = Omit<WikipediaParagraph, 'articleId'>;
+
 /**
  * Split text into paragraphs (split on double newlines)
  */
@@ -29,7 +31,7 @@ const createParagraph = R.curry(
     sectionName: string,
     position: number,
     content: string
-  ): WikipediaParagraph => ({
+  ): ParagraphWithoutArticleId => ({
     articleTitle,
     sectionName,
     paragraphPosition: position,
@@ -64,13 +66,13 @@ export const extractParagraphsFromSection = (
   sectionName: string,
   sectionContent: string,
   minLength: number = 10
-): WikipediaParagraph[] => {
+): ParagraphWithoutArticleId[] => {
   const paragraphTexts = R.pipe(
     toParagraphs,
     R.filter(isValidParagraph(minLength))
   )(sectionContent);
 
-  return R.addIndex<string, WikipediaParagraph>(R.map)(
+  return R.addIndex<string, ParagraphWithoutArticleId>(R.map)(
     (content: string, index: number) =>
       createParagraph(articleTitle, sectionName, index, content),
     paragraphTexts

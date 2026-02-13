@@ -60,7 +60,7 @@ describe('QdrantInserter', () => {
 
       const batches = [createMockEmbeddedParagraphs(1)];
 
-      for await (const result of inserter.insertBatches(asyncIterator(batches))) {
+      for await (const _result of inserter.insertBatches(asyncIterator(batches))) {
         // Just consume the iterator
       }
 
@@ -83,7 +83,7 @@ describe('QdrantInserter', () => {
       const batches = [createMockEmbeddedParagraphs(1)];
 
       await expect(async () => {
-        for await (const result of inserter.insertBatches(asyncIterator(batches))) {
+        for await (const _result of inserter.insertBatches(asyncIterator(batches))) {
           // Should throw before yielding
         }
       }).rejects.toThrow(QdrantInsertError);
@@ -126,7 +126,7 @@ describe('QdrantInserter', () => {
 
       const batches = [paragraphs];
 
-      for await (const result of inserter.insertBatches(asyncIterator(batches))) {
+      for await (const _result of inserter.insertBatches(asyncIterator(batches))) {
         // Just consume
       }
 
@@ -177,7 +177,7 @@ describe('QdrantInserter', () => {
 
       const batches = [createMockEmbeddedParagraphs(1)];
 
-      for await (const result of inserter.insertBatches(asyncIterator(batches))) {
+      for await (const _result of inserter.insertBatches(asyncIterator(batches))) {
         // Just consume
       }
 
@@ -203,7 +203,7 @@ describe('QdrantInserter', () => {
       const batches = [createMockEmbeddedParagraphs(1)];
 
       await expect(async () => {
-        for await (const result of inserter.insertBatches(asyncIterator(batches))) {
+        for await (const _result of inserter.insertBatches(asyncIterator(batches))) {
           // Should throw
         }
       }).rejects.toThrow(QdrantInsertError);
@@ -223,7 +223,7 @@ describe('QdrantInserter', () => {
       const batches = [createMockEmbeddedParagraphs(5)];
 
       try {
-        for await (const result of inserter.insertBatches(asyncIterator(batches))) {
+        for await (const _result of inserter.insertBatches(asyncIterator(batches))) {
           // Should throw
         }
       } catch (error) {

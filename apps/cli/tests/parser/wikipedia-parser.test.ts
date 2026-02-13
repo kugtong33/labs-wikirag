@@ -162,7 +162,7 @@ describe('WikipediaParser', () => {
 
       // Test that we can break early and memory is not wasted
       let count = 0;
-      for await (const paragraph of parseWikipediaDump(filePath)) {
+      for await (const _paragraph of parseWikipediaDump(filePath)) {
         count++;
         if (count >= 2) break;
       }
@@ -220,7 +220,7 @@ describe('WikipediaParser', () => {
         const fakePath = path.join(fixturesDir, 'non-existent.xml');
 
         await expect(async () => {
-          for await (const paragraph of parseWikipediaDump(fakePath)) {
+          for await (const _paragraph of parseWikipediaDump(fakePath)) {
             // Should never get here
           }
         }).rejects.toThrow();

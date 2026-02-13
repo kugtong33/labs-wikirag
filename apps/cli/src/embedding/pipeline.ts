@@ -48,7 +48,7 @@ const DEFAULT_LOG_INTERVAL = 1000;
  * ```
  */
 export class EmbeddingPipeline {
-  private config: Required<PipelineConfig>;
+  private config: PipelineConfig & { logInterval: number };
   private metrics: EmbeddingMetrics;
 
   constructor(config: PipelineConfig) {
@@ -237,7 +237,7 @@ export class EmbeddingPipeline {
   private logProgress(): void {
     const elapsed = Date.now() - this.metrics.startTime;
     const rate = this.metrics.paragraphsProcessed / (elapsed / 1000);
-    const eta = this.calculateETA(rate);
+    const eta = this.calculateETA();
 
     console.log(
       `Progress: ${this.metrics.paragraphsProcessed.toLocaleString()} paragraphs | ` +
@@ -276,10 +276,9 @@ export class EmbeddingPipeline {
   /**
    * Calculate estimated time remaining
    *
-   * @param rate - Current processing rate (paragraphs/sec)
    * @returns Human-readable ETA string
    */
-  private calculateETA(rate: number): string {
+  private calculateETA(): string {
     if (!this.metrics.estimatedTimeRemaining) {
       return 'calculating...';
     }
@@ -337,7 +336,7 @@ export class EmbeddingPipeline {
    *
    * @returns Current pipeline configuration
    */
-  public getConfig(): Required<PipelineConfig> {
+  public getConfig(): PipelineConfig & { logInterval: number } {
     return R.clone(this.config);
   }
 

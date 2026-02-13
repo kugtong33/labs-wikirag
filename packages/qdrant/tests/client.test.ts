@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { QdrantClientWrapper, QdrantError } from '../src/index.js';
 
 describe('QdrantClientWrapper', () => {

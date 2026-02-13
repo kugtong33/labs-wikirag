@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
+    "lint": "eslint .",
     "test": "echo \"No tests yet\""
   },
   "devDependencies": {

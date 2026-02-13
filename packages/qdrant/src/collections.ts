@@ -1,6 +1,6 @@
 import * as R from 'ramda';
 import { QdrantClientWrapper } from './client.js';
-import { CollectionConfig, QdrantError } from './types.js';
+import { QdrantError } from './types.js';
 
 /**
  * Manager for Qdrant collection operations

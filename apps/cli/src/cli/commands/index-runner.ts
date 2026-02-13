@@ -10,7 +10,6 @@
  * @module cli/commands/index-runner
  */
 
-import * as R from 'ramda';
 import { parseWikipediaDump, type WikipediaParagraph } from '../../parser/index.js';
 import { EmbeddingPipeline } from '../../embedding/pipeline.js';
 import { qdrantClient, collectionManager } from '@wikirag/qdrant';
@@ -251,7 +250,7 @@ async function* filterParagraphs(
   if (!isResume) {
     for await (const paragraph of paragraphs) {
       if (state.isShuttingDown) break;
-      yield* handleProgress(paragraph, state, checkpointFile);
+      await handleProgress(paragraph, state, checkpointFile);
       yield paragraph;
     }
     return;
@@ -269,16 +268,16 @@ async function* filterParagraphs(
     }
 
     if (state.isShuttingDown) break;
-    yield* handleProgress(paragraph, state, checkpointFile);
+    await handleProgress(paragraph, state, checkpointFile);
     yield paragraph;
   }
 }
 
-async function* handleProgress(
+async function handleProgress(
   paragraph: WikipediaParagraph,
   state: IndexingState,
   checkpointFile: string
-): AsyncGenerator<WikipediaParagraph> {
+): Promise<void> {
   if (paragraph.articleId !== state.lastSeenArticleId) {
     state.lastSeenArticleId = paragraph.articleId;
     state.articlesInBatch += 1;

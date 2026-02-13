@@ -252,7 +252,7 @@ describe('BatchProcessor', () => {
       const paragraphs = createMockParagraphs(2);
 
       await expect(async () => {
-        for await (const batch of processor.processBatches(asyncIterator(paragraphs))) {
+        for await (const _batch of processor.processBatches(asyncIterator(paragraphs))) {
           // Should throw before yielding
         }
       }).rejects.toThrow();
