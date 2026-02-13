@@ -48,6 +48,13 @@ development_status:
   1-5-indexing-cli-with-checkpoint-and-resume: in-progress
   epic-1-retrospective: optional
 
+  epic-1-5: backlog
+  1-5-1-embedding-provider-abstraction-layer: backlog
+  1-5-2-local-llm-infrastructure-setup: backlog
+  1-5-3-local-model-provider-implementations: backlog
+  1-5-4-provider-benchmarking-and-quality-comparison: backlog
+  epic-1-5-retrospective: optional
+
   epic-2: backlog
   2-1-pipeline-adapter-interfaces-and-technique-registry: ready-for-dev
   2-2-naive-rag-technique-implementation: ready-for-dev

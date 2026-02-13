@@ -486,3 +486,48 @@ library.
 17 Option A: structured with correlation
 
 18 OptionA: status enum
+
+
+
+Using openai as an embedding LLM will be very expensive aproximately ~$132 to ~$858
+
+To embed the entire English Wikipedia dump (approximately 5 billion words or 6.6 billion tokens), your total cost with OpenAI depends on the model and processing tier you choose. 
+
+Estimated Costs (as of February 2026)
+
+Model 	Standard Pricing (per 1M tokens)	Total Estimated Cost (Standard)	Batch API Cost (50% Off)
+text-embedding-3-small	$0.02	$132.00	$66.00
+text-embedding-3-large	$0.13	$858.00	$429.00
+text-embedding-ada-002	$0.10	$660.00	$330.00
+
+Note: Calculations assume ~1.33 tokens per word (standard for English text). 
+
+Key Savings & Strategies
+
+Use the OpenAI Batch API: Since Wikipedia is a massive static dataset, you can process it within 24 hours to save 50% on all token costs.
+
+Model Selection: text-embedding-3-small is the recommended choice for most large-scale indexing. It is 6.5x cheaper than the large version while maintaining high performance for semantic search.
+
+Storage Costs: The fees above are for one-time generation only. You will still need to pay for storage in a vector database like Pinecone, Weaviate, or Milvus.
+
+Rate Limits: For a dataset this large, you will likely need to be in a higher usage tier (Tier 4 or 5) to avoid significant delays, as standard rate limits for embeddings are often around 1M–10M tokens per minute. 
+
+I also found out about gpt-oss:14b, gpt-oss:20b, qwen3:14b and you can set these models locally
+
+I think it is better to have a local LLM setup and see how fast they can embed the wikipedia dump
+
+OS: Pop!_OS 24.04 LTS x86_64
+Kernel: Linux 6.18.7-76061807-generic
+Terminal Font: Noto Sans Mono (14px)
+CPU: Intel(R) Core(TM) i7-6700K (8) @ 4.20 GHz
+GPU: NVIDIA GeForce GTX 1070 [Discrete]
+Memory: 19.71 GiB / 31.16 GiB (63%)
+Swap: 67.77 MiB / 20.00 GiB (0%)
+Disk (/): 268.16 GiB / 906.94 GiB (30%) - ext4
+Disk (/recovery): 2.73 GiB / 3.99 GiB (68%) - vfat
+
+I have the following system, lets setup a local model using gpt-oss:14b and qwen3:14b
+
+I also want to retain the openai setup for future proofing, lets create a separate turbo project for setting up the local LLMs and transform the current embed component to a plugin-style architecture so that I can swap embedding libraries on the fly through the cli
+
+I have not testing anything, the openai costing is all theoretical, but at the same time I want to do embeddings using local llms as well so that I can benchmark both, let me be able to select embedding components on the fly using the cli
