@@ -136,6 +136,10 @@ FR37: Epic 7 - Self-RAG iteratively refines retrieval through self-reflection an
 Operators can deploy WikiRAG infrastructure and index the full English Wikipedia into a searchable vector database.
 **FRs covered:** FR16, FR17, FR18, FR19, FR20, FR21, FR22, FR23, FR24, FR25, FR30, FR32, FR33
 
+### Epic 1.5: Local Embedding Providers
+Operators can use local LLM embedding models as an alternative to OpenAI, eliminating per-token costs and enabling embedding quality benchmarking across providers.
+**FRs covered:** FR39, FR40, FR41 (new FRs for embedding provider extensibility)
+
 ### Epic 2: Core Query Experience with Naive RAG
 Users can query Wikipedia using Naive RAG through an installable web app with streaming responses.
 **FRs covered:** FR1, FR2, FR3, FR4, FR5, FR6, FR7, FR8, FR9, FR26, FR27, FR28, FR29, FR31, FR34
@@ -215,17 +219,19 @@ So that the 22GB+ dump is processed incrementally without loading it all into me
 ### Story 1.4: Embedding Generation and Qdrant Insertion
 
 As an operator,
-I want each extracted paragraph to be embedded via OpenAI and inserted into Qdrant with its metadata,
+I want each extracted paragraph to be embedded via the selected embedding provider and inserted into Qdrant with its metadata,
 So that Wikipedia content becomes searchable through vector similarity.
 
 **Acceptance Criteria:**
 
 **Given** a stream of parsed paragraphs with metadata
 **When** the embedding pipeline processes them
-**Then** each paragraph is embedded using the configured OpenAI embedding model
-**And** the embedding is inserted into the appropriate Qdrant collection with its metadata payload (articleTitle, sectionName, paragraphPosition, dumpVersion, embeddingModel)
+**Then** each paragraph is embedded using the selected embedding provider
+**And** the embedding is inserted into the appropriate Qdrant collection with its metadata payload (articleTitle, sectionName, paragraphPosition, dumpVersion, embeddingModel, embeddingProvider)
 **And** insertions are batched for efficiency
-**And** the OpenAI API key is read from environment variables, never hardcoded
+**And** provider API keys are read from environment variables, never hardcoded
+**And** the embedding provider is abstracted via a provider interface in `packages/embeddings`
+**And** providers are registered and discoverable at runtime
 
 ### Story 1.5: Indexing CLI with Checkpoint and Resume
 
@@ -235,20 +241,122 @@ So that I can manage the long-running indexing process across multiple sessions.
 
 **Acceptance Criteria:**
 
-**Given** I run the CLI index command with an embedding strategy flag
+**Given** I run the CLI index command with an embedding strategy flag and embedding provider flag
 **When** the indexing process starts
-**Then** it streams through the dump: parse → embed → insert
-**And** progress is tracked in `indexing-checkpoint.json` (lastArticleId, articlesProcessed, totalArticles, strategy, dumpFile)
+**Then** it streams through the dump: parse → embed (via selected provider) → insert
+**And** progress is tracked in `indexing-checkpoint.json` (lastArticleId, articlesProcessed, totalArticles, strategy, provider, dumpFile)
 
 **Given** indexing was previously interrupted
 **When** I run the CLI index command again
 **Then** it resumes from the last checkpoint position
 **And** no duplicate embeddings are created
 
-**Given** I want to use a different embedding strategy
-**When** I specify the strategy via CLI parameter
-**Then** a new collection is created with the appropriate naming convention
-**And** indexing proceeds into the new collection
+**Given** I want to use a different embedding strategy or provider
+**When** I specify the strategy and provider via CLI parameters (e.g., `--strategy paragraph --embedding-provider openai` or `--embedding-provider gpt-oss-14b`)
+**Then** a new collection is created with the appropriate naming convention (e.g., `wiki-paragraph-openai-20260213`)
+**And** indexing proceeds into the new collection using the selected provider
+
+## Epic 1.5: Local Embedding Providers
+
+Operators can use local LLM embedding models as an alternative to OpenAI, eliminating per-token costs and enabling embedding quality benchmarking across providers.
+
+### Story 1.5.1: Embedding Provider Abstraction Layer
+
+As a developer,
+I want a pluggable embedding provider architecture with clear interfaces,
+So that new embedding providers can be added without modifying core indexing code.
+
+**Acceptance Criteria:**
+
+**Given** the `packages/embeddings` package exists
+**When** I review the provider interfaces
+**Then** there is a clear `EmbeddingProvider` interface defining the contract for all providers
+**And** the interface includes methods: `embed(text: string): Promise<number[]>`, `getModelInfo(): ModelInfo`, `validateConfig(): boolean`
+**And** there is a provider registry that discovers and registers providers at startup
+
+**Given** an embedding provider implements the interface
+**When** the provider is registered
+**Then** it can be selected via CLI flag
+**And** it can be discovered via the provider registry
+
+**Given** multiple providers are registered
+**When** the CLI lists available providers
+**Then** all registered providers are displayed with their model information
+
+### Story 1.5.2: Local LLM Infrastructure Setup
+
+As an operator,
+I want to set up local LLM infrastructure for embedding generation,
+So that I can run embedding models on my own hardware without API costs.
+
+**Acceptance Criteria:**
+
+**Given** I have a machine with GPU support (NVIDIA GTX 1070 or better)
+**When** I follow the setup instructions in README.md
+**Then** I can install and run Ollama (or equivalent local LLM runtime)
+**And** I can pull embedding models (gpt-oss:14b, qwen3:14b)
+**And** the local LLM server is accessible via localhost API
+
+**Given** local LLM infrastructure is running
+**When** the CLI connects to the local provider
+**Then** it successfully generates embeddings via the local API
+**And** performance metrics (embeddings/sec) are comparable to OpenAI
+
+**Given** I want to use a different local LLM runtime (vLLM, llama.cpp)
+**When** I configure the provider settings
+**Then** the provider adapter works with multiple runtime backends
+
+### Story 1.5.3: Local Model Provider Implementations
+
+As a developer,
+I want concrete implementations of local embedding providers,
+So that operators can choose from multiple local models for embedding generation.
+
+**Acceptance Criteria:**
+
+**Given** the embedding provider abstraction exists
+**When** I implement the gpt-oss:14b provider
+**Then** it implements the `EmbeddingProvider` interface
+**And** it generates embeddings via Ollama API
+**And** it handles batching for efficiency
+**And** it includes retry logic for transient failures
+
+**Given** the gpt-oss:14b provider is registered
+**When** I run the CLI with `--embedding-provider gpt-oss-14b`
+**Then** indexing uses the local model for embedding generation
+**And** embeddings are inserted into Qdrant with `embeddingProvider: "gpt-oss-14b"`
+
+**Given** I want to add qwen3:14b as a second local provider
+**When** I implement the qwen3:14b provider
+**Then** it follows the same pattern as gpt-oss:14b
+**And** operators can select between `openai`, `gpt-oss-14b`, and `qwen3-14b` via CLI
+
+**Given** both local providers are available
+**When** operators index Wikipedia with different providers
+**Then** separate Qdrant collections are created (e.g., `wiki-paragraph-openai-20260213`, `wiki-paragraph-gpt-oss-14b-20260213`)
+
+### Story 1.5.4: Provider Benchmarking & Quality Comparison
+
+As an operator,
+I want to benchmark embedding provider performance and quality,
+So that I can make data-driven decisions about which provider to use.
+
+**Acceptance Criteria:**
+
+**Given** multiple embedding providers are available
+**When** I run a benchmarking utility with sample paragraphs
+**Then** I see performance metrics for each provider (embeddings/sec, latency, memory usage)
+**And** I see embedding dimensions and model information for each provider
+
+**Given** I have indexed Wikipedia with different providers
+**When** I run quality comparison queries
+**Then** I can compare retrieval quality across providers (precision, recall, relevance)
+**And** results help me understand which provider works best for my use case
+
+**Given** I want to document provider characteristics
+**When** I review the benchmarking results
+**Then** README.md includes a provider comparison table (cost, speed, quality, hardware requirements)
+**And** guidance helps operators choose the right provider for their needs
 
 ## Epic 2: Core Query Experience with Naive RAG
 

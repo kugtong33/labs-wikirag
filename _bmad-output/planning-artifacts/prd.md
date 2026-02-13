@@ -57,6 +57,8 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 - PWA installable via browser and functional with sensible defaults
 - Comparison mode runs 2 techniques simultaneously with side-by-side output
 - Plugin architecture supports interchangeable modules at each pipeline stage
+- Embedding providers are pluggable via adapter interfaces (OpenAI + local LLM options)
+- Operators can select embedding provider via CLI without code changes
 
 ### Measurable Outcomes
 
@@ -81,7 +83,7 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 |-----------|--------|
 | RAG Pipeline Architecture | Plugin-style adapters at each stage (query, pre-retrieval, retrieval, post-retrieval, generation) |
 | RAG Techniques (5) | Naive, simple, corrective, HyDE, self-RAG (delivered incrementally across epics) |
-| Data Ingestion | CLI for full English Wikipedia dump, per-paragraph embedding with metadata, streaming + resume |
+| Data Ingestion | CLI for full English Wikipedia dump, per-paragraph embedding with metadata, streaming + resume, pluggable embedding providers (OpenAI + local LLM) |
 | Vector Storage | Qdrant with OpenAI embeddings |
 | Web UI (PWA) | React SPA, single query mode, comparison mode (2 techniques), streaming responses |
 | API Layer | TypeScript API with streaming endpoints (SSE/WebSocket) |
@@ -97,8 +99,8 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 - Batch evaluation via CLI (RAGAS, LangChain/LangSmith, TruLens)
 - Golden dataset evaluation (200 queries: 50 per type - factual, open-ended, vague, meta)
 - Additional embedding strategies (optimal chunking, per-document)
-- Open-source embedding model alternatives
 - Multi-comparison mode (3+ techniques simultaneously)
+- Embedding provider comparison mode (side-by-side quality benchmarking in PWA)
 
 ### Vision (Phase 3)
 
@@ -285,7 +287,7 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 
 - **FR16:** Operators can index the full English Wikipedia dump via a CLI command
 - **FR17:** The CLI can parse Wikipedia dump articles and extract paragraphs with metadata (article title, section, position)
-- **FR18:** The CLI can create vector embeddings for each paragraph using the configured embedding provider
+- **FR18:** The CLI can create vector embeddings for each paragraph using the selected embedding provider (OpenAI or local LLM)
 - **FR19:** The CLI can insert embeddings with metadata into the vector database
 - **FR20:** The indexing process can stream through the dump incrementally (not load all into memory)
 - **FR21:** Operators can pause and resume indexing from where it left off
@@ -317,6 +319,12 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 - **FR35:** The system can execute Corrective RAG, which evaluates retrieved context for relevance and accuracy, discarding or re-retrieving low-quality results before generation
 - **FR36:** The system can execute HyDE (Hypothetical Document Embeddings), which generates a hypothetical answer from the query and uses its embedding for similarity search to improve retrieval for vague or ambiguous queries
 - **FR37:** The system can execute Self-RAG, which iteratively refines retrieval through self-reflection, rewriting queries and re-retrieving to produce progressively better context
+
+### Embedding Provider Extensibility
+
+- **FR39:** Contributors can add new embedding provider modules by implementing provider interfaces without modifying core indexing code
+- **FR40:** The system can register and discover embedding provider modules at startup
+- **FR41:** Operators can select an embedding provider via CLI parameters (e.g., `--embedding-provider openai` or `--embedding-provider gpt-oss-14b`)
 
 ## Non-Functional Requirements
 

@@ -154,6 +154,9 @@ packages/
 | Collection schema | Vector field (embedding) + Payload field (JSON metadata: article title, section, paragraph position, dump version, embedding model) | Qdrant's native two-field document structure |
 | Indexing checkpoint | Local JSON file (`indexing-checkpoint.json`) | Simple, fast resume without Qdrant queries; tracks lastArticleId, articlesProcessed, totalArticles, strategy, dumpFile |
 | XML parsing | fast-xml-parser v5.3.4 | Actively maintained, fast streaming support; xml2js last committed 3 years ago |
+| Embedding providers | Pluggable provider abstraction with registry | Extends adapter pattern from RAG techniques to embedding providers; OpenAI + local LLM options (gpt-oss:14b, qwen3:14b); eliminates vendor lock-in and per-token costs; enables embedding quality benchmarking |
+| Provider selection | CLI flag `--embedding-provider <name>` | Operators choose provider at indexing time; checkpoint tracks provider; collection naming includes provider context |
+| Local LLM runtime | Ollama (primary), supports vLLM/llama.cpp | Mature, well-documented, GPU-accelerated; runs on operator's hardware (i7-6700K + GTX 1070 capable) |
 
 ### Authentication & Security
 
@@ -551,6 +554,33 @@ labs-wikirag/
 │   │       ├── techniques/
 │   │       └── pipeline/
 │   │
+│   ├── embeddings/
+│   │   ├── package.json
+│   │   ├── tsconfig.json
+│   │   ├── src/
+│   │   │   ├── index.ts                            # Package exports
+│   │   │   ├── providers/
+│   │   │   │   ├── base/
+│   │   │   │   │   ├── embedding-provider.ts       # Provider interface (FR39)
+│   │   │   │   │   └── provider-registry.ts        # Registry for discovery (FR40)
+│   │   │   │   ├── openai/
+│   │   │   │   │   └── openai-provider.ts          # OpenAI implementation
+│   │   │   │   ├── local/
+│   │   │   │   │   ├── gpt-oss-provider.ts         # gpt-oss:14b implementation
+│   │   │   │   │   ├── qwen-provider.ts            # qwen3:14b implementation
+│   │   │   │   │   └── ollama-client.ts            # Ollama API client wrapper
+│   │   │   ├── benchmarking/
+│   │   │   │   └── provider-benchmark.ts           # Performance/quality comparison utilities
+│   │   │   └── types/
+│   │   │       ├── provider.ts                     # Provider type definitions
+│   │   │       └── benchmark.ts                    # Benchmarking types
+│   │   └── tests/
+│   │       ├── providers/
+│   │       │   ├── openai-provider.test.ts
+│   │       │   ├── gpt-oss-provider.test.ts
+│   │       │   └── qwen-provider.test.ts
+│   │       └── benchmarking/
+│   │
 │   ├── qdrant/
 │   │   ├── package.json
 │   │   ├── tsconfig.json
@@ -600,6 +630,7 @@ labs-wikirag/
 | Vector Storage (FR23-25) | `packages/qdrant/` | Consumed by `apps/api` and `apps/cli` |
 | Web Application (FR26-29) | `apps/web/` | Connects to API via SSE + REST |
 | Infrastructure (FR30-34) | `docker-compose.yml`, `Dockerfile` per app | Turborepo `prune` for Docker builds |
+| Embedding Providers (FR39-41) | `packages/embeddings/` | Provider interfaces, registry, OpenAI + local implementations, benchmarking |
 
 ### Data Flow
 
