@@ -59,6 +59,7 @@ export async function runIndexing(options: IndexCommandOptions): Promise<void> {
   console.log(`Dump file: ${options.dumpFile}`);
   console.log(`Strategy: ${options.strategy}`);
   console.log(`Dump date: ${options.dumpDate}`);
+  console.log(`Provider: ${options.embeddingProvider || 'openai'}`);
   console.log(`Model: ${options.model || 'text-embedding-3-small'}`);
   console.log(`Batch size: ${options.batchSize || 100}`);
   console.log(`Collection: ${checkpoint.collectionName}`);
@@ -114,7 +115,8 @@ async function loadOrCreateCheckpoint(
   checkpointFile: string,
   options: IndexCommandOptions
 ): Promise<{ checkpoint: CheckpointData; isResume: boolean }> {
-  const collectionName = `wiki-${options.strategy}-${options.dumpDate}`;
+  const embeddingProvider = options.embeddingProvider || 'openai';
+  const collectionName = `wiki-${options.strategy}-${embeddingProvider}-${options.dumpDate}`;
   const embeddingModel = options.model || 'text-embedding-3-small';
 
   // Check if checkpoint exists
@@ -213,6 +215,7 @@ async function runIndexingPipeline(
   const pipeline = new EmbeddingPipeline({
     dumpVersion: options.dumpDate,
     strategy: options.strategy,
+    embeddingProvider: options.embeddingProvider || 'openai',
     embedding: {
       apiKey: process.env.OPENAI_API_KEY || '',
       model: options.model || 'text-embedding-3-small',

@@ -2,7 +2,7 @@
  * Batch processor for paragraph embedding generation
  *
  * Accumulates paragraphs into batches and processes them
- * through the OpenAI embeddings API.
+ * through any embedding provider via the EmbeddingProvider interface.
  *
  * @module embedding/batch-processor
  */
@@ -14,7 +14,7 @@ import type {
   WikipediaPayload,
   BatchEmbeddingResult,
 } from './types.js';
-import { OpenAIClient } from './openai-client.js';
+import type { EmbeddingProvider } from '@wikirag/embeddings';
 import { BatchProcessingError } from './errors.js';
 
 /**
@@ -27,8 +27,8 @@ export interface BatchProcessorConfig {
   dumpVersion: string;
   /** Embedding model name */
   embeddingModel: string;
-  /** OpenAI client instance */
-  client: OpenAIClient;
+  /** Embedding provider instance */
+  embeddingProvider: EmbeddingProvider;
 }
 
 /**
@@ -50,7 +50,7 @@ const DEFAULT_BATCH_SIZE = 100;
  * const processor = new BatchProcessor({
  *   dumpVersion: '20260210',
  *   embeddingModel: 'text-embedding-3-small',
- *   client: openaiClient
+ *   embeddingProvider: provider
  * });
  *
  * for await (const embedded of processor.processBatches(paragraphs)) {
@@ -67,7 +67,7 @@ export class BatchProcessor {
       batchSize: config.batchSize ?? DEFAULT_BATCH_SIZE,
       dumpVersion: config.dumpVersion,
       embeddingModel: config.embeddingModel,
-      client: config.client,
+      embeddingProvider: config.embeddingProvider,
     };
     this.metrics = { apiCallsMade: 0, rateLimitHits: 0 };
   }
@@ -113,7 +113,7 @@ export class BatchProcessor {
    *
    * Steps:
    * 1. Extract content for embedding
-   * 2. Generate embeddings via OpenAI
+   * 2. Generate embeddings via provider
    * 3. Combine embeddings with metadata
    * 4. Handle any failures
    *
@@ -125,8 +125,8 @@ export class BatchProcessor {
       // Extract text content for embedding using Ramda
       const texts = R.pluck('content', batch);
 
-      // Generate embeddings
-      const result = await this.config.client.generateEmbeddings(texts);
+      // Generate embeddings via provider
+      const result = await this.config.embeddingProvider.embedBatch(texts);
       this.metrics.apiCallsMade += 1;
       this.metrics.rateLimitHits += result.rateLimitHits;
 

@@ -107,7 +107,9 @@ export interface PipelineConfig {
   dumpVersion: string;
   /** Embedding strategy (e.g., 'paragraph', 'chunked', 'document') */
   strategy: string;
-  /** OpenAI embedding configuration */
+  /** Embedding provider name (e.g., 'openai', 'gpt-oss-14b', 'qwen3-14b') */
+  embeddingProvider?: string;
+  /** Embedding provider configuration */
   embedding: EmbeddingConfig;
   /** Qdrant insertion configuration */
   qdrant: QdrantInsertConfig;

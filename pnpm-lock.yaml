@@ -64,6 +64,9 @@ importers:
       '@wikirag/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@wikirag/embeddings':
+        specifier: workspace:*
+        version: link:../../packages/embeddings
       '@wikirag/qdrant':
         specifier: workspace:*
         version: link:../../packages/qdrant
@@ -73,9 +76,6 @@ importers:
       fast-xml-parser:
         specifier: ^5.3.4
         version: 5.3.5
-      openai:
-        specifier: ^4.77.3
-        version: 4.104.0
       ramda:
         specifier: ^0.32.0
         version: 0.32.0
@@ -123,6 +123,31 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  packages/embeddings:
+    dependencies:
+      openai:
+        specifier: ^4.77.3
+        version: 4.104.0
+      ramda:
+        specifier: ^0.32.0
+        version: 0.32.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.2.2
+        version: 25.2.2
+      '@types/ramda':
+        specifier: ^0.31.1
+        version: 0.31.1
+      '@wikirag/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.2.2)
 
   packages/qdrant:
     dependencies:

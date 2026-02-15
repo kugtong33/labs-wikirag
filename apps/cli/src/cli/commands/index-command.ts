@@ -20,7 +20,9 @@ export interface IndexCommandOptions {
   strategy: string;
   /** Wikipedia dump date (YYYYMMDD format) */
   dumpDate: string;
-  /** OpenAI embedding model (optional) */
+  /** Embedding provider (openai, gpt-oss-14b, qwen3-14b) (optional) */
+  embeddingProvider?: string;
+  /** Embedding model (optional) */
   model?: string;
   /** Batch size for embedding API calls (optional) */
   batchSize?: number;
@@ -51,8 +53,13 @@ export function createIndexCommand(): Command {
       'Wikipedia dump date in YYYYMMDD format (e.g., 20260210)'
     )
     .option(
+      '--embedding-provider <provider>',
+      'Embedding provider: openai, gpt-oss-14b, qwen3-14b',
+      'openai'
+    )
+    .option(
       '--model <model>',
-      'OpenAI embedding model',
+      'Embedding model name (provider-specific)',
       'text-embedding-3-small'
     )
     .option(

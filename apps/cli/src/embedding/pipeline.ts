@@ -9,7 +9,7 @@
 
 import * as R from 'ramda';
 import { parseWikipediaDump, type WikipediaParagraph } from '../parser/index.js';
-import { OpenAIClient } from './openai-client.js';
+import { providerRegistry } from '@wikirag/embeddings';
 import { BatchProcessor } from './batch-processor.js';
 import { QdrantInserter } from './qdrant-inserter.js';
 import type { PipelineConfig, EmbeddingMetrics } from './types.js';
@@ -84,12 +84,17 @@ export class EmbeddingPipeline {
     console.log('---');
 
     try {
+      // Get embedding provider from registry
+      const embeddingProvider = providerRegistry.getProvider(
+        this.config.embeddingProvider ?? 'openai',
+        this.config.embedding
+      );
+
       // Initialize pipeline components
-      const openaiClient = OpenAIClient.getInstance(this.config.embedding);
       const batchProcessor = new BatchProcessor({
         dumpVersion: this.config.dumpVersion,
         embeddingModel: this.config.embedding.model ?? 'text-embedding-3-small',
-        client: openaiClient,
+        embeddingProvider,
         batchSize: this.config.embedding.batchSize,
       });
 
@@ -130,11 +135,16 @@ export class EmbeddingPipeline {
     paragraphs: AsyncIterable<WikipediaParagraph>
   ): Promise<EmbeddingMetrics> {
     try {
-      const openaiClient = OpenAIClient.getInstance(this.config.embedding);
+      // Get embedding provider from registry
+      const embeddingProvider = providerRegistry.getProvider(
+        this.config.embeddingProvider ?? 'openai',
+        this.config.embedding
+      );
+
       const batchProcessor = new BatchProcessor({
         dumpVersion: this.config.dumpVersion,
         embeddingModel: this.config.embedding.model ?? 'text-embedding-3-small',
-        client: openaiClient,
+        embeddingProvider,
         batchSize: this.config.embedding.batchSize,
       });
 
@@ -342,9 +352,13 @@ export class EmbeddingPipeline {
 
   /**
    * Validate Qdrant collection naming convention
+   *
+   * Expected format: wiki-{strategy}-{provider}-{dumpVersion}
+   * Example: wiki-paragraph-openai-20260215
    */
   private validateCollectionName(): void {
-    const expected = `wiki-${this.config.strategy}-${this.config.dumpVersion}`;
+    const provider = this.config.embeddingProvider ?? 'openai';
+    const expected = `wiki-${this.config.strategy}-${provider}-${this.config.dumpVersion}`;
     if (this.config.qdrant.collectionName !== expected) {
       throw new Error(
         `Invalid collection name: ${this.config.qdrant.collectionName}. Expected ${expected}.`

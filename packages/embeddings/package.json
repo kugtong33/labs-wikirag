@@ -1,24 +1,18 @@
 {
-  "name": "@wikirag/cli",
+  "name": "@wikirag/embeddings",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "bin": {
-    "wikirag-cli": "./dist/index.js"
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint .",
-    "test": "vitest",
-    "cli": "node dist/index.js"
+    "test": "vitest"
   },
   "dependencies": {
-    "@wikirag/core": "workspace:*",
-    "@wikirag/embeddings": "workspace:*",
-    "@wikirag/qdrant": "workspace:*",
-    "commander": "^12.1.0",
-    "fast-xml-parser": "^5.3.4",
+    "openai": "^4.77.3",
     "ramda": "^0.32.0"
   },
   "devDependencies": {

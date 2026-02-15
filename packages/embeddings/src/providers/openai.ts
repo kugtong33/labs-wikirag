@@ -1,21 +1,32 @@
 /**
- * OpenAI client wrapper for generating text embeddings
+ * OpenAI embedding provider implementation
  *
- * Provides embedding generation with automatic retry logic,
- * rate limiting, and exponential backoff.
- *
- * @module embedding/openai-client
+ * @module embeddings/providers/openai
  */
 
 import OpenAI from 'openai';
 import * as R from 'ramda';
-import type { EmbeddingConfig, BatchEmbeddingResult } from './types.js';
-import { OpenAIApiError, RateLimitError } from './errors.js';
+import type { EmbeddingProvider } from '../provider.js';
+import type {
+  OpenAIConfig,
+  BatchEmbeddingResult,
+  ModelInfo,
+  ValidationResult,
+} from '../types.js';
 
 /**
- * Default embedding model
+ * Default OpenAI embedding model
  */
 const DEFAULT_MODEL = 'text-embedding-3-small';
+
+/**
+ * Model dimensions mapping
+ */
+const MODEL_DIMENSIONS: Record<string, number> = {
+  'text-embedding-3-small': 1536,
+  'text-embedding-3-large': 3072,
+  'text-embedding-ada-002': 1536,
+};
 
 /**
  * Default configuration values
@@ -28,53 +39,74 @@ const DEFAULT_CONFIG = {
 } as const;
 
 /**
- * OpenAI client wrapper for generating embeddings
+ * OpenAI-specific errors
+ */
+export class OpenAIApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode?: number,
+    public originalError?: Error
+  ) {
+    super(message);
+    this.name = 'OpenAIApiError';
+  }
+}
+
+export class RateLimitError extends OpenAIApiError {
+  constructor(
+    message: string,
+    public retryAfter?: number,
+    originalError?: Error
+  ) {
+    super(message, 429, originalError);
+    this.name = 'RateLimitError';
+  }
+}
+
+/**
+ * OpenAI embedding provider
  *
- * This client:
- * - Manages OpenAI API connection
- * - Generates embeddings for text batches
- * - Implements exponential backoff retry logic
- * - Handles rate limiting gracefully
+ * Implements the EmbeddingProvider interface for OpenAI's embedding API.
+ * Provides automatic retry logic, rate limiting, and exponential backoff.
  *
  * @example
  * ```typescript
- * const client = OpenAIClient.getInstance({
+ * const provider = new OpenAIProvider({
  *   apiKey: process.env.OPENAI_API_KEY!,
  *   model: 'text-embedding-3-small',
  *   maxRetries: 3
  * });
  *
- * const result = await client.generateEmbeddings(['text1', 'text2']);
+ * const embedding = await provider.embed('Hello world');
+ * const batch = await provider.embedBatch(['text1', 'text2']);
  * ```
  */
-export class OpenAIClient {
-  private static instance: OpenAIClient | null = null;
+export class OpenAIProvider implements EmbeddingProvider {
   private client: OpenAI;
-  private config: Required<EmbeddingConfig>;
+  private config: Required<OpenAIConfig>;
 
-  private constructor(config: EmbeddingConfig) {
-    this.config = R.mergeRight(DEFAULT_CONFIG, config) as Required<EmbeddingConfig>;
-    this.client = new OpenAI({ apiKey: this.config.apiKey });
+  constructor(config: OpenAIConfig) {
+    this.config = R.mergeDeepRight(DEFAULT_CONFIG, config) as Required<OpenAIConfig>;
+    this.client = new OpenAI({
+      apiKey: this.config.apiKey,
+      organization: this.config.organizationId,
+    });
   }
 
   /**
-   * Get or create singleton instance of OpenAI client
+   * Generate embedding for a single text string
    *
-   * @param config - Configuration for the client
-   * @returns OpenAI client instance
+   * @param text - Text to embed
+   * @returns Embedding vector
    */
-  public static getInstance(config: EmbeddingConfig): OpenAIClient {
-    if (!OpenAIClient.instance) {
-      OpenAIClient.instance = new OpenAIClient(config);
+  public async embed(text: string): Promise<number[]> {
+    const result = await this.embedBatch([text]);
+    if (result.embeddings.length === 0) {
+      throw new OpenAIApiError(
+        `Failed to generate embedding: ${result.errors[0] || 'Unknown error'}`
+      );
     }
-    return OpenAIClient.instance;
-  }
-
-  /**
-   * Reset singleton instance (useful for testing)
-   */
-  public static resetInstance(): void {
-    OpenAIClient.instance = null;
+    return result.embeddings[0];
   }
 
   /**
@@ -86,7 +118,7 @@ export class OpenAIClient {
    * @param texts - Array of text strings to embed
    * @returns Batch embedding result with embeddings and any failures
    */
-  public async generateEmbeddings(texts: string[]): Promise<BatchEmbeddingResult> {
+  public async embedBatch(texts: string[]): Promise<BatchEmbeddingResult> {
     if (R.isEmpty(texts)) {
       return {
         embeddings: [],
@@ -106,7 +138,7 @@ export class OpenAIClient {
         })
       );
 
-      // Extract embeddings in order, using Ramda for transformation
+      // Extract embeddings in order
       const sorted = R.sortBy<{ embedding: number[]; index: number }>(
         R.prop('index'),
         response.data as Array<{ embedding: number[]; index: number }>
@@ -137,18 +169,56 @@ export class OpenAIClient {
   }
 
   /**
+   * Get model information
+   *
+   * @returns Model metadata
+   */
+  public getModelInfo(): ModelInfo {
+    const dimensions = MODEL_DIMENSIONS[this.config.model] || 1536;
+    return {
+      provider: 'openai',
+      model: this.config.model,
+      dimensions,
+      description: `OpenAI embedding model ${this.config.model}`,
+    };
+  }
+
+  /**
+   * Validate provider configuration
+   *
+   * @returns Validation result
+   */
+  public validateConfig(): ValidationResult {
+    const errors: string[] = [];
+
+    if (!this.config.apiKey || this.config.apiKey.trim() === '') {
+      errors.push('OpenAI API key is required');
+    }
+
+    if (!this.config.model || this.config.model.trim() === '') {
+      errors.push('Model name is required');
+    }
+
+    if (this.config.batchSize <= 0) {
+      errors.push('Batch size must be greater than 0');
+    }
+
+    if (this.config.maxRetries < 0) {
+      errors.push('Max retries cannot be negative');
+    }
+
+    if (this.config.baseDelay <= 0) {
+      errors.push('Base delay must be greater than 0');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
    * Execute a function with automatic retry and exponential backoff
-   *
-   * Retry logic:
-   * - Initial delay: baseDelay (default: 1000ms)
-   * - Subsequent delays: baseDelay * 2^attempt (exponential backoff)
-   * - Rate limit errors: respect Retry-After header if provided
-   * - Max retries: configurable (default: 3)
-   *
-   * @param fn - Async function to execute
-   * @returns Result of the function
-   * @throws {RateLimitError} If rate limit exceeded after max retries
-   * @throws {OpenAIApiError} If API call fails after max retries
    */
   private async withRetry<T>(
     fn: () => Promise<T>
@@ -174,7 +244,6 @@ export class OpenAIClient {
 
         if (isRateLimit) {
           rateLimitHits += 1;
-          // Use Retry-After header if available, otherwise exponential backoff
           const baseDelay = retryAfter
             ? retryAfter * 1000
             : this.config.baseDelay * Math.pow(2, attempt);
@@ -189,9 +258,7 @@ export class OpenAIClient {
         }
 
         // For other errors, use exponential backoff
-        const delay = this.applyJitter(
-          this.config.baseDelay * Math.pow(2, attempt)
-        );
+        const delay = this.applyJitter(this.config.baseDelay * Math.pow(2, attempt));
         console.warn(
           `API error, retrying after ${delay}ms (attempt ${attempt + 1}/${this.config.maxRetries}): ${lastError.message}`
         );
@@ -218,22 +285,13 @@ export class OpenAIClient {
 
   /**
    * Check if an error is a rate limit error (HTTP 429)
-   *
-   * @param error - Error to check
-   * @returns True if rate limit error
    */
   private isRateLimitError(error: unknown): boolean {
-    return R.pipe(
-      R.pathOr(0, ['status']),
-      R.equals(429)
-    )(error);
+    return R.pipe(R.pathOr(0, ['status']), R.equals(429))(error);
   }
 
   /**
    * Extract Retry-After header value from error
-   *
-   * @param error - Error to extract from
-   * @returns Retry-After value in seconds, or undefined
    */
   private extractRetryAfter(error: unknown): number | undefined {
     return R.pipe(
@@ -244,9 +302,6 @@ export class OpenAIClient {
 
   /**
    * Extract HTTP status code from error
-   *
-   * @param error - Error to extract from
-   * @returns HTTP status code, or undefined
    */
   private extractStatusCode(error: unknown): number | undefined {
     return R.pathOr(undefined, ['status'], error);
@@ -254,8 +309,6 @@ export class OpenAIClient {
 
   /**
    * Sleep for specified milliseconds
-   *
-   * @param ms - Milliseconds to sleep
    */
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -273,10 +326,8 @@ export class OpenAIClient {
 
   /**
    * Get current configuration
-   *
-   * @returns Current client configuration
    */
-  public getConfig(): Required<EmbeddingConfig> {
+  public getConfig(): Required<OpenAIConfig> {
     return R.clone(this.config);
   }
 }

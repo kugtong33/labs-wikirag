@@ -2,7 +2,7 @@
  * Embedding generation and Qdrant insertion module
  *
  * Provides complete pipeline for:
- * - OpenAI embedding generation with retry logic
+ * - Embedding generation via pluggable providers
  * - Batch processing for efficiency
  * - Qdrant vector insertion
  * - Progress tracking and metrics
@@ -14,7 +14,6 @@
 export { EmbeddingPipeline } from './pipeline.js';
 
 // Component classes
-export { OpenAIClient } from './openai-client.js';
 export { BatchProcessor } from './batch-processor.js';
 export { QdrantInserter } from './qdrant-inserter.js';
 
@@ -33,8 +32,6 @@ export type {
 // Error classes
 export {
   EmbeddingError,
-  RateLimitError,
-  OpenAIApiError,
   QdrantInsertError,
   BatchProcessingError,
 } from './errors.js';
