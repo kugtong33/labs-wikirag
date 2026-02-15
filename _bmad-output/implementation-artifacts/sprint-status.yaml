@@ -50,9 +50,9 @@ development_status:
 
   epic-1-5: in-progress
   1-5-1-embedding-provider-abstraction-layer: ready-for-dev
-  1-5-2-local-llm-infrastructure-setup: backlog
-  1-5-3-local-model-provider-implementations: backlog
-  1-5-4-provider-benchmarking-and-quality-comparison: backlog
+  1-5-2-local-llm-infrastructure-setup: ready-for-dev
+  1-5-3-local-model-provider-implementations: ready-for-dev
+  1-5-4-provider-benchmarking-and-quality-comparison: ready-for-dev
   epic-1-5-retrospective: optional
 
   epic-2: backlog
