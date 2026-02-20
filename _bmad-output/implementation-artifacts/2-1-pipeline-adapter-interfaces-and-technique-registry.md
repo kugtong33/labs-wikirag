@@ -1,6 +1,6 @@
 # Story 2.1: Pipeline Adapter Interfaces and Technique Registry
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -20,40 +20,40 @@ So that new RAG techniques can be added by implementing adapters without modifyi
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create packages/core package structure (AC: 1)
-  - [ ] 1.1 Create packages/core/package.json
-  - [ ] 1.2 Create packages/core/tsconfig.json
-  - [ ] 1.3 Create src/types/ directory for adapter interfaces
-  - [ ] 1.4 Create src/techniques/ directory for technique implementations
-  - [ ] 1.5 Create src/registry/ for technique discovery
-- [ ] Task 2: Define adapter interfaces (AC: 1, 4)
-  - [ ] 2.1 Create src/types/query-adapter.ts
-  - [ ] 2.2 Create src/types/pre-retrieval-adapter.ts
-  - [ ] 2.3 Create src/types/retrieval-adapter.ts
-  - [ ] 2.4 Create src/types/post-retrieval-adapter.ts
-  - [ ] 2.5 Create src/types/generation-adapter.ts
-  - [ ] 2.6 Add comprehensive JSDoc to all interfaces
-- [ ] Task 3: Create shared types (AC: 1)
-  - [ ] 3.1 Create src/types/pipeline-context.ts
-  - [ ] 3.2 Define PipelineContext type (query, retrievedDocs, config)
-  - [ ] 3.3 Define RetrievedDocument type
-  - [ ] 3.4 Define PipelineConfig type
-- [ ] Task 4: Implement technique registry (AC: 2, 3)
-  - [ ] 4.1 Create src/registry/technique-registry.ts
-  - [ ] 4.2 Implement registerTechnique(name, composition)
-  - [ ] 4.3 Implement getTechnique(name)
-  - [ ] 4.4 Implement listTechniques()
-  - [ ] 4.5 Use Map for O(1) technique lookup
-- [ ] Task 5: Define Technique type (AC: 1)
-  - [ ] 5.1 Create src/types/technique.ts
-  - [ ] 5.2 Define Technique interface (name, description, adapters)
-  - [ ] 5.3 Define TechniqueComposition type
-- [ ] Task 6: Add comprehensive tests (AC: All)
-  - [ ] 6.1 Create tests/registry/technique-registry.test.ts
-  - [ ] 6.2 Test registration and retrieval
-  - [ ] 6.3 Test technique listing
-  - [ ] 6.4 Test error cases (duplicate registration, not found)
-  - [ ] 6.5 Run pnpm test (all tests pass)
+- [x] Task 1: Create packages/core package structure (AC: 1)
+  - [x] 1.1 Create packages/core/package.json
+  - [x] 1.2 Create packages/core/tsconfig.json
+  - [x] 1.3 Create src/types/ directory for adapter interfaces
+  - [x] 1.4 Create src/techniques/ directory for technique implementations
+  - [x] 1.5 Create src/registry/ for technique discovery
+- [x] Task 2: Define adapter interfaces (AC: 1, 4)
+  - [x] 2.1 Create src/types/query-adapter.ts
+  - [x] 2.2 Create src/types/pre-retrieval-adapter.ts
+  - [x] 2.3 Create src/types/retrieval-adapter.ts
+  - [x] 2.4 Create src/types/post-retrieval-adapter.ts
+  - [x] 2.5 Create src/types/generation-adapter.ts
+  - [x] 2.6 Add comprehensive JSDoc to all interfaces
+- [x] Task 3: Create shared types (AC: 1)
+  - [x] 3.1 Create src/types/pipeline-context.ts
+  - [x] 3.2 Define PipelineContext type (query, retrievedDocs, config)
+  - [x] 3.3 Define RetrievedDocument type
+  - [x] 3.4 Define PipelineConfig type
+- [x] Task 4: Implement technique registry (AC: 2, 3)
+  - [x] 4.1 Create src/registry/technique-registry.ts
+  - [x] 4.2 Implement registerTechnique(name, composition)
+  - [x] 4.3 Implement getTechnique(name)
+  - [x] 4.4 Implement listTechniques()
+  - [x] 4.5 Use Map for O(1) technique lookup
+- [x] Task 5: Define Technique type (AC: 1)
+  - [x] 5.1 Create src/types/technique.ts
+  - [x] 5.2 Define Technique interface (name, description, adapters)
+  - [x] 5.3 Define TechniqueComposition type
+- [x] Task 6: Add comprehensive tests (AC: All)
+  - [x] 6.1 Create tests/registry/technique-registry.test.ts
+  - [x] 6.2 Test registration and retrieval
+  - [x] 6.3 Test technique listing
+  - [x] 6.4 Test error cases (duplicate registration, not found)
+  - [x] 6.5 Run pnpm test (all tests pass)
 
 ## Dev Notes
 
@@ -260,20 +260,38 @@ export const techniqueRegistry = new TechniqueRegistry();
 
 ### Agent Model Used
 
-_To be filled by dev agent_
+claude-sonnet-4-6
 
 ### Debug Log References
 
-_To be filled by dev agent_
+No issues. The `packages/core` package skeleton (package.json, tsconfig.json, empty index.ts) already existed without vitest; added vitest devDependency and `"type": "module"` to complete the scaffold.
 
 ### Completion Notes List
 
-_To be filled by dev agent_
+- All 5 pipeline-stage adapter interfaces implemented with full JSDoc and `@example` blocks
+- `PipelineContext` is the single mutable carrier object passed through all stages
+- `TechniqueRegistry` uses `Map<string, Technique>` for O(1) lookup; `list()` uses `R.sortBy` (Ramda)
+- Validation via `R.allPass` ensures required adapters (query, retrieval, generation) are present at registration time
+- `techniqueRegistry` singleton exported for runtime use; `TechniqueRegistry` class exported for test isolation
+- 20 tests: registration (7), get (3), has (2), list (3), clear (2), singleton (2)
 
 ### Change Log
 
-_To be filled by dev agent_
+2026-02-21: Story implemented by claude-sonnet-4-6
 
 ### File List
 
-_To be filled by dev agent_
+- `packages/core/package.json` — MODIFIED: added `"type": "module"`, vitest devDependency, fixed test script
+- `packages/core/tsconfig.json` — MODIFIED: no functional change (re-confirmed correct)
+- `packages/core/vitest.config.ts` — NEW: vitest config (globals: true, node env)
+- `packages/core/src/index.ts` — MODIFIED: barrel exports for all types and registry
+- `packages/core/src/types/pipeline-context.ts` — NEW: PipelineContext, PipelineConfig, RetrievedDocument
+- `packages/core/src/types/query-adapter.ts` — NEW: QueryAdapter interface
+- `packages/core/src/types/pre-retrieval-adapter.ts` — NEW: PreRetrievalAdapter interface
+- `packages/core/src/types/retrieval-adapter.ts` — NEW: RetrievalAdapter interface
+- `packages/core/src/types/post-retrieval-adapter.ts` — NEW: PostRetrievalAdapter interface
+- `packages/core/src/types/generation-adapter.ts` — NEW: GenerationAdapter interface
+- `packages/core/src/types/technique.ts` — NEW: Technique, TechniqueComposition types
+- `packages/core/src/registry/technique-registry.ts` — NEW: TechniqueRegistry, TechniqueRegistryError, techniqueRegistry singleton
+- `packages/core/src/techniques/.gitkeep` — NEW: placeholder for future technique implementations
+- `packages/core/tests/registry/technique-registry.test.ts` — NEW: 20 tests

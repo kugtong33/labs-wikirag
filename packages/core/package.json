@@ -2,19 +2,21 @@
   "name": "@wikirag/core",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint .",
-    "test": "echo \"No tests yet\""
+    "test": "vitest"
   },
   "devDependencies": {
     "@types/node": "^25.2.2",
     "@types/ramda": "^0.31.1",
     "@wikirag/tsconfig": "workspace:*",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "ramda": "^0.32.0"
