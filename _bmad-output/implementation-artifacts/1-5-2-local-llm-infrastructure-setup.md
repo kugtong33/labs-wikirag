@@ -1,6 +1,6 @@
 # Story 1-5.2: Local LLM Infrastructure Setup
 
-Status: review
+Status: done
 
 ## Story
 
@@ -36,7 +36,7 @@ All TypeScript provider code (OllamaProvider, health utilities, registry registr
 - [x] Task 1: Add Ollama service to Docker Compose infrastructure (AC: 1, 3)
   - [x] Add `ollama` service to docker-compose.yml with GPU passthrough
   - [x] Configure volume mount for model persistence (`ollama-data`)
-  - [x] Add health check using Ollama API endpoint (`curl -f http://localhost:11434/`)
+  - [x] Add health check using Ollama API endpoint (`GET http://localhost:11434/`)
   - [x] Ensure Ollama service starts alongside Qdrant
   - [x] Add `docker-compose.cpu.yml` override for CPU-only fallback (no GPU reservation)
 
@@ -54,6 +54,10 @@ All TypeScript provider code (OllamaProvider, health utilities, registry registr
   - [x] Document environment variable configuration (`OLLAMA_BASE_URL`)
   - [x] Document verification steps: `curl http://localhost:11434/` and `ollama list`
   - [x] Include model comparison note: nomic-embed-text (274MB, 768 dims) vs qwen3-embedding (639MB-4.7GB, up to 4096 dims)
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][Low] Align `qwen3-embedding` dimensions between README tables (`up to 4096` vs `1024`) for consistent operator guidance [README.md:76]
 
 ## Dev Notes
 
@@ -154,9 +158,10 @@ None — all tasks completed without issues.
 
 ### Completion Notes List
 
-- Task 1: Added `ollama` service to `docker-compose.yml` with NVIDIA GPU passthrough, `ollama-data` volume mount for persistence, and health check via `curl -f http://localhost:11434/`. Created `docker-compose.cpu.yml` override that clears the `deploy.resources.reservations` section for CPU-only systems.
+- Task 1: Added `ollama` service to `docker-compose.yml` with NVIDIA GPU passthrough, `ollama-data` volume mount for persistence, and HTTP health check against `http://localhost:11434/`. Created `docker-compose.cpu.yml` override that clears the `deploy.resources.reservations` section for CPU-only systems.
 - Task 2: Updated `apps/cli/.env.example` and `apps/api/.env.example` with `OLLAMA_BASE_URL=http://localhost:11434`, `EMBEDDING_PROVIDER` selector, and inline comments listing both supported models with size/dimension info.
 - Task 3: Created root-level `README.md` covering: project overview, quick start, infrastructure service table, GPU vs CPU Docker commands, Option A (Docker Ollama) and Option B (native install), model pull instructions, `curl`/`ollama list` verification steps, environment variable configuration section, and model comparison table.
+- Senior review fixes: pinned Ollama image to immutable digest, replaced invalid Ollama healthcheck command (`curl`) with bash TCP HTTP probe, and corrected CPU override to remove GPU reservation using Compose merge reset semantics.
 
 ### File List
 
@@ -165,7 +170,23 @@ None — all tasks completed without issues.
 - `apps/cli/.env.example` (modified)
 - `apps/api/.env.example` (modified)
 - `README.md` (created)
+- `_bmad-output/implementation-artifacts/1-5-2-local-llm-infrastructure-setup.md` (modified during code review)
+
+### Senior Developer Review (AI)
+
+- Reviewer: kugtong33
+- Date: 2026-02-20
+- Outcome: Changes Requested -> Fixed (High/Medium), one Low follow-up recorded
+- Validation summary:
+  - AC coverage validated against implementation and documentation
+  - Git/story audit performed; review updates now captured in File List and Change Log
+  - Docker CPU override validated via `docker compose -f docker-compose.yml -f docker-compose.cpu.yml config` (no Ollama GPU reservation in merged output)
+  - Ollama healthcheck command validated against image tooling (`curl` unavailable in `ollama/ollama`)
+- Issues fixed in this review:
+  - `docker-compose.yml`: pinned Ollama image and replaced healthcheck with bash TCP probe
+  - `docker-compose.cpu.yml`: removed GPU reservation in CPU override using `!reset`
 
 ### Change Log
 
 - 2026-02-20: Story 1.5.2 implemented — Ollama Docker service added, CPU override file created, env.example files updated with OLLAMA_BASE_URL and provider docs, README.md created with full local LLM setup guide.
+- 2026-02-20: Senior AI code review fixes applied — fixed Ollama healthcheck command compatibility, corrected CPU override GPU removal behavior, pinned Ollama image digest, and added low-severity README consistency follow-up.

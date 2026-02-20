@@ -6,6 +6,4 @@
 
 services:
   ollama:
-    deploy:
-      resources:
-        reservations: {}
+    deploy: !reset null
