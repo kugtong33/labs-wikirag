@@ -33,3 +33,15 @@ export {
   TechniqueRegistryError,
   techniqueRegistry,
 } from './registry/technique-registry.js';
+
+// Naive RAG technique
+export {
+  createNaiveRagTechnique,
+  registerNaiveRag,
+  PassthroughQueryAdapter,
+  NaiveRagRetrievalAdapter,
+  NaiveRagGenerationAdapter,
+  DEFAULT_GENERATION_MODEL,
+  NAIVE_RAG_NAME,
+} from './techniques/naive-rag/index.js';
+export type { NaiveRagConfig } from './techniques/naive-rag/index.js';

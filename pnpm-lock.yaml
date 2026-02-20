@@ -107,6 +107,15 @@ importers:
 
   packages/core:
     dependencies:
+      '@wikirag/embeddings':
+        specifier: workspace:*
+        version: link:../embeddings
+      '@wikirag/qdrant':
+        specifier: workspace:*
+        version: link:../qdrant
+      openai:
+        specifier: ^4.77.3
+        version: 4.104.0
       ramda:
         specifier: ^0.32.0
         version: 0.32.0

@@ -19,6 +19,9 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@wikirag/embeddings": "workspace:*",
+    "@wikirag/qdrant": "workspace:*",
+    "openai": "^4.77.3",
     "ramda": "^0.32.0"
   }
 }
