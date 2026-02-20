@@ -177,4 +177,24 @@ describe('runBenchmark', () => {
     const result = await runBenchmark(provider, SAMPLE_CONFIG);
     expect(result.totalDurationMs).toBeGreaterThanOrEqual(0);
   });
+
+  it('counts only successful embeddings for totalTexts', async () => {
+    provider.embedBatch = vi.fn().mockResolvedValue({
+      embeddings: [[0.1], [0.2]],
+      successIndices: [0, 2],
+      failedIndices: [1],
+      errors: ['', 'failed', ''],
+      rateLimitHits: 0,
+    });
+
+    const result = await runBenchmark(provider, {
+      sampleTexts: ['a', 'b', 'c'],
+      warmupRounds: 0,
+      benchmarkRounds: 2,
+      batchSize: 3,
+    });
+
+    // 2 successful embeddings per round x 2 rounds
+    expect(result.totalTexts).toBe(4);
+  });
 });

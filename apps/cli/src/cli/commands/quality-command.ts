@@ -146,6 +146,12 @@ function calculateOverlap(a: QualityResult[], b: QualityResult[]): number {
   return b.filter((r) => titlesA.has(r.title)).length;
 }
 
+function validatePositiveInteger(value: number, name: string): void {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+}
+
 /**
  * Display a single quality comparison result to stdout
  */
@@ -172,6 +178,8 @@ export function createQualityCommand(): Command {
     .option('--top-k <n>', 'Number of results per collection', (v) => parseInt(v, 10), DEFAULT_TOP_K)
     .action(async (options: QualityCommandOptions) => {
       try {
+        validatePositiveInteger(options.topK, '--top-k');
+
         const collectionNames = options.collections
           .split(',')
           .map((c) => c.trim())

@@ -100,6 +100,12 @@ function resolveProviders(providersOption: string): string[] {
   return providersOption.split(',').map((p) => p.trim()).filter((p) => p.length > 0);
 }
 
+function validatePositiveInteger(value: number, name: string): void {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+}
+
 /**
  * Create and configure the benchmark command
  *
@@ -117,6 +123,9 @@ export function createBenchmarkCommand(): Command {
     .option('--json', 'Output results as JSON')
     .action(async (options: BenchmarkCommandOptions) => {
       try {
+        validatePositiveInteger(options.rounds, '--rounds');
+        validatePositiveInteger(options.batchSize, '--batch-size');
+
         // Resolve sample texts
         const sampleTexts = options.sampleFile
           ? loadSampleFile(options.sampleFile)
@@ -142,6 +151,7 @@ export function createBenchmarkCommand(): Command {
 
         // Run benchmarks sequentially
         const results: BenchmarkResult[] = [];
+        const failures: string[] = [];
 
         for (const providerName of providerNames) {
           if (!options.json) {
@@ -168,6 +178,7 @@ export function createBenchmarkCommand(): Command {
             }
           } catch (providerError) {
             const message = providerError instanceof Error ? providerError.message : String(providerError);
+            failures.push(`${providerName}: ${message}`);
             if (!options.json) {
               console.error(`  ❌ Failed: ${message}\n`);
             }
@@ -181,6 +192,9 @@ export function createBenchmarkCommand(): Command {
         // Output results
         if (options.json) {
           console.log(formatBenchmarkResultsJson(results));
+          if (failures.length > 0) {
+            console.error(`Benchmark failures: ${failures.join(' | ')}`);
+          }
         } else {
           console.log('\n📊 Results');
           console.log(formatBenchmarkTable(results));

@@ -68,9 +68,12 @@ export async function runBenchmark(
 
   for (let i = 0; i < benchmarkRounds; i++) {
     const batchStart = Date.now();
-    await provider.embedBatch(batch);
+    const batchResult = await provider.embedBatch(batch);
     batchLatencies.push(Date.now() - batchStart);
-    totalTexts += batch.length;
+    const successfulCount = batchResult.successIndices.length > 0
+      ? batchResult.successIndices.length
+      : batchResult.embeddings.length;
+    totalTexts += successfulCount;
   }
 
   const totalDurationMs = Date.now() - phaseStart;
