@@ -20,7 +20,7 @@ export interface IndexCommandOptions {
   strategy: string;
   /** Wikipedia dump date (YYYYMMDD format) */
   dumpDate: string;
-  /** Embedding provider (openai, gpt-oss-14b, qwen3-14b) (optional) */
+  /** Embedding provider (openai, nomic-embed-text, qwen3-embedding) (optional) */
   embeddingProvider?: string;
   /** Embedding model (optional) */
   model?: string;
@@ -54,7 +54,7 @@ export function createIndexCommand(): Command {
     )
     .option(
       '--embedding-provider <provider>',
-      'Embedding provider: openai, gpt-oss-14b, qwen3-14b',
+      'Embedding provider: openai, nomic-embed-text, qwen3-embedding',
       'openai'
     )
     .option(

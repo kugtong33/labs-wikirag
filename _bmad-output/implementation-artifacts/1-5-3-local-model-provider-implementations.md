@@ -1,6 +1,6 @@
 # Story 1-5.3: Local Model Provider Implementations
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -38,65 +38,65 @@ Infrastructure (Docker, .env files, README docs) belongs to **Story 1.5.2**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Implement OllamaProvider base class (AC: 1)
-  - [ ] Create `packages/embeddings/src/providers/ollama.ts` implementing `EmbeddingProvider`
-  - [ ] Constructor accepts `LocalLLMConfig`, merges defaults with `R.mergeDeepRight`
-  - [ ] Implement `embed(text)` delegating to `embedBatch([text])`
-  - [ ] Implement `embedBatch(texts)` using Ollama native `/api/embed` endpoint with batch input
-  - [ ] Implement `getModelInfo()` returning provider name, model, and dimensions
-  - [ ] Implement `validateConfig()` checking model name and baseUrl format
-  - [ ] Implement private `withRetry<T>()` for exponential backoff (matching OpenAI pattern)
-  - [ ] Handle dimension discovery: cache dimensions from first successful embed response
-  - [ ] Create `OllamaApiError` error class for Ollama-specific errors
-  - [ ] Use native `fetch()` for HTTP calls (no additional dependencies)
+- [x] Task 1: Implement OllamaProvider base class (AC: 1)
+  - [x] Create `packages/embeddings/src/providers/ollama.ts` implementing `EmbeddingProvider`
+  - [x] Constructor accepts `LocalLLMConfig`, merges defaults with `R.mergeDeepRight`
+  - [x] Implement `embed(text)` delegating to `embedBatch([text])`
+  - [x] Implement `embedBatch(texts)` using Ollama native `/api/embed` endpoint with batch input
+  - [x] Implement `getModelInfo()` returning provider name, model, and dimensions
+  - [x] Implement `validateConfig()` checking model name and baseUrl format
+  - [x] Implement private `withRetry<T>()` for exponential backoff (matching OpenAI pattern)
+  - [x] Handle dimension discovery: cache dimensions from first successful embed response
+  - [x] Create `OllamaApiError` error class for Ollama-specific errors
+  - [x] Use native `fetch()` for HTTP calls (no additional dependencies)
 
-- [ ] Task 2: Implement Ollama health check utilities (AC: 1)
-  - [ ] Create `packages/embeddings/src/providers/ollama-health.ts`
-  - [ ] Implement `checkOllamaConnection(baseUrl: string): Promise<boolean>` - GET to base URL
-  - [ ] Implement `listAvailableModels(baseUrl: string): Promise<string[]>` - GET `/api/tags`
-  - [ ] Add connection timeout (default 5s) and meaningful error messages
-  - [ ] Export utilities from `packages/embeddings/src/index.ts`
+- [x] Task 2: Implement Ollama health check utilities (AC: 1)
+  - [x] Create `packages/embeddings/src/providers/ollama-health.ts`
+  - [x] Implement `checkOllamaConnection(baseUrl: string): Promise<boolean>` - GET to base URL
+  - [x] Implement `listAvailableModels(baseUrl: string): Promise<string[]>` - GET `/api/tags`
+  - [x] Add connection timeout (default 5s) and meaningful error messages
+  - [x] Export utilities from `packages/embeddings/src/index.ts`
 
-- [ ] Task 3: Register nomic-embed-text provider (AC: 2, 3)
-  - [ ] Add `nomic-embed-text` registration in `packages/embeddings/src/index.ts`
-  - [ ] Factory creates `OllamaProvider` with `{ model: 'nomic-embed-text', baseUrl: 'http://localhost:11434' }`
-  - [ ] ModelInfo: `{ provider: 'nomic-embed-text', model: 'nomic-embed-text', dimensions: 768 }`
-  - [ ] Ensure discoverable via `providerRegistry.listProviders()`
+- [x] Task 3: Register nomic-embed-text provider (AC: 2, 3)
+  - [x] Add `nomic-embed-text` registration in `packages/embeddings/src/index.ts`
+  - [x] Factory creates `OllamaProvider` with `{ model: 'nomic-embed-text', baseUrl: 'http://localhost:11434' }`
+  - [x] ModelInfo: `{ provider: 'nomic-embed-text', model: 'nomic-embed-text', dimensions: 768 }`
+  - [x] Ensure discoverable via `providerRegistry.listProviders()`
 
-- [ ] Task 4: Register qwen3-embedding provider (AC: 3)
-  - [ ] Add `qwen3-embedding` registration in `packages/embeddings/src/index.ts`
-  - [ ] Factory creates `OllamaProvider` with `{ model: 'qwen3-embedding', baseUrl: 'http://localhost:11434' }`
-  - [ ] ModelInfo: `{ provider: 'qwen3-embedding', model: 'qwen3-embedding', dimensions: 1024 }`
-  - [ ] Ensure discoverable via `providerRegistry.listProviders()`
+- [x] Task 4: Register qwen3-embedding provider (AC: 3)
+  - [x] Add `qwen3-embedding` registration in `packages/embeddings/src/index.ts`
+  - [x] Factory creates `OllamaProvider` with `{ model: 'qwen3-embedding', baseUrl: 'http://localhost:11434' }`
+  - [x] ModelInfo: `{ provider: 'qwen3-embedding', model: 'qwen3-embedding', dimensions: 1024 }`
+  - [x] Ensure discoverable via `providerRegistry.listProviders()`
 
-- [ ] Task 5: Update CLI help text and defaults (AC: 2, 3)
-  - [ ] Update `--embedding-provider` option description in `index-command.ts` to list all registered providers
-  - [ ] Ensure `--model` flag is passed through to Ollama providers correctly
-  - [ ] Verify collection naming works with new provider names (e.g., `wiki-paragraph-nomic-embed-text-20260215`)
+- [x] Task 5: Update CLI help text and defaults (AC: 2, 3)
+  - [x] Update `--embedding-provider` option description in `index-command.ts` to list all registered providers
+  - [x] Ensure `--model` flag is passed through to Ollama providers correctly
+  - [x] Verify collection naming works with new provider names (e.g., `wiki-paragraph-nomic-embed-text-20260215`)
 
-- [ ] Task 6: Write comprehensive tests for OllamaProvider (AC: All)
-  - [ ] Create `packages/embeddings/tests/providers/ollama.test.ts`
-  - [ ] Test constructor with default config merging
-  - [ ] Test constructor with custom baseUrl and model
-  - [ ] Test `getModelInfo()` returns correct provider/model/dimensions
-  - [ ] Test `validateConfig()` with valid config
-  - [ ] Test `validateConfig()` with missing model name
-  - [ ] Test `validateConfig()` with empty model name
-  - [ ] Test `embedBatch()` with empty input returns empty result
-  - [ ] Test `embedBatch()` calls correct Ollama API endpoint
-  - [ ] Test `embedBatch()` handles API error responses
-  - [ ] Test `embed()` delegates to `embedBatch()`
-  - [ ] Test retry logic with transient failures
-  - [ ] Test dimension caching after first successful embed
-  - [ ] Target: minimum 12 tests for OllamaProvider
+- [x] Task 6: Write comprehensive tests for OllamaProvider (AC: All)
+  - [x] Create `packages/embeddings/tests/providers/ollama.test.ts`
+  - [x] Test constructor with default config merging
+  - [x] Test constructor with custom baseUrl and model
+  - [x] Test `getModelInfo()` returns correct provider/model/dimensions
+  - [x] Test `validateConfig()` with valid config
+  - [x] Test `validateConfig()` with missing model name
+  - [x] Test `validateConfig()` with empty model name
+  - [x] Test `embedBatch()` with empty input returns empty result
+  - [x] Test `embedBatch()` calls correct Ollama API endpoint
+  - [x] Test `embedBatch()` handles API error responses
+  - [x] Test `embed()` delegates to `embedBatch()`
+  - [x] Test retry logic with transient failures
+  - [x] Test dimension caching after first successful embed
+  - [x] Target: minimum 12 tests for OllamaProvider
 
-- [ ] Task 7: Write tests for health check utilities (AC: 1)
-  - [ ] Create `packages/embeddings/tests/providers/ollama-health.test.ts`
-  - [ ] Test `checkOllamaConnection()` with reachable server (mocked)
-  - [ ] Test `checkOllamaConnection()` with unreachable server (mocked)
-  - [ ] Test `listAvailableModels()` parsing response
-  - [ ] Test timeout handling
-  - [ ] Target: minimum 5 tests for health utilities
+- [x] Task 7: Write tests for health check utilities (AC: 1)
+  - [x] Create `packages/embeddings/tests/providers/ollama-health.test.ts`
+  - [x] Test `checkOllamaConnection()` with reachable server (mocked)
+  - [x] Test `checkOllamaConnection()` with unreachable server (mocked)
+  - [x] Test `listAvailableModels()` parsing response
+  - [x] Test timeout handling
+  - [x] Target: minimum 5 tests for health utilities
 
 ## Dev Notes
 
@@ -324,12 +324,30 @@ pnpm build                                  # Full monorepo build with Turborepo
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+claude-sonnet-4-6
 
 ### Debug Log References
 
+None — all tasks completed without issues. All 57 tests pass (34 baseline + 16 OllamaProvider + 7 health).
+
 ### Completion Notes List
+
+- Task 1: Implemented `OllamaProvider` in `packages/embeddings/src/providers/ollama.ts`. Follows OpenAI provider pattern exactly: `R.mergeDeepRight` for config defaults, `R.isEmpty` guard, `R.range`/`R.repeat` for index arrays, `withRetry<T>` with exponential backoff + jitter. `OllamaApiError` extends Error with `name`, `statusCode`, `cause`. Dimensions are 0 until first successful `embedBatch` call then cached. No new npm dependencies — uses native `fetch()`.
+- Task 2: Implemented `checkOllamaConnection` and `listAvailableModels` in `packages/embeddings/src/providers/ollama-health.ts`. Both use `AbortController` + `setTimeout` for configurable timeouts (default 5 s). `checkOllamaConnection` swallows all errors and returns boolean; `listAvailableModels` rethrows with informative timeout message on AbortError.
+- Task 3 & 4: Registered `nomic-embed-text` (768 dims) and `qwen3-embedding` (1024 dims) in `packages/embeddings/src/index.ts` using same factory pattern as OpenAI. Both export `OllamaProvider`, `OllamaApiError`, `DEFAULT_OLLAMA_URL`, `checkOllamaConnection`, `listAvailableModels`.
+- Task 5: Updated `--embedding-provider` option description and JSDoc comment in `apps/cli/src/cli/commands/index-command.ts` to list `nomic-embed-text` and `qwen3-embedding` instead of obsolete `gpt-oss-14b`/`qwen3-14b` names.
+- Task 6: 16 tests for `OllamaProvider` covering constructor, getModelInfo, validateConfig (valid/empty/whitespace model), embedBatch (empty, endpoint URL, success, error, dimension caching, retry, retry exhaustion), and embed (success + throws on failure).
+- Task 7: 7 tests for health utilities covering `checkOllamaConnection` (ok/network error/non-ok status/AbortError) and `listAvailableModels` (success/server error/AbortError timeout message).
 
 ### File List
 
+- `packages/embeddings/src/providers/ollama.ts` (created)
+- `packages/embeddings/src/providers/ollama-health.ts` (created)
+- `packages/embeddings/src/index.ts` (modified)
+- `packages/embeddings/tests/providers/ollama.test.ts` (created)
+- `packages/embeddings/tests/providers/ollama-health.test.ts` (created)
+- `apps/cli/src/cli/commands/index-command.ts` (modified)
+
 ### Change Log
+
+- 2026-02-20: Story 1.5.3 implemented — OllamaProvider class, OllamaApiError, health check utilities, nomic-embed-text and qwen3-embedding provider registrations, CLI help text update, 23 new tests (16 + 7). All 57 tests pass.
