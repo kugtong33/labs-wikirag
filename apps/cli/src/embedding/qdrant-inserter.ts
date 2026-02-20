@@ -43,7 +43,7 @@ interface QdrantPoint {
  * @example
  * ```typescript
  * const inserter = new QdrantInserter({
- *   collectionName: 'wiki-paragraph-20260210',
+ *   collectionName: 'wiki-paragraph-openai-20260210',
  *   batchSize: 100
  * }, qdrantClient, collectionManager);
  *
@@ -154,6 +154,7 @@ export class QdrantInserter {
         paragraphPosition: paragraph.payload.paragraphPosition,
         dumpVersion: paragraph.payload.dumpVersion,
         embeddingModel: paragraph.payload.embeddingModel,
+        embeddingProvider: paragraph.payload.embeddingProvider,
       },
     }), paragraphs);
   }

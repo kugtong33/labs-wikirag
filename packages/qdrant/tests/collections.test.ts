@@ -5,22 +5,24 @@ describe('CollectionManager', () => {
   describe('collection naming convention', () => {
     it('should format collection names correctly', () => {
       // Test the naming format through create method validation
-      // The internal formatCollectionName enforces wiki-{strategy}-{dump_date}
-      const expectedName = 'wiki-paragraph-20260209';
+      // The internal formatCollectionName enforces wiki-{strategy}-{provider}-{dump_date}
+      const expectedName = 'wiki-paragraph-openai-20260209';
 
-      expect(expectedName).toMatch(/^wiki-[a-z]+-\d{8}$/);
+      expect(expectedName).toMatch(/^wiki-[a-z]+-[a-z0-9-]+-\d{8}$/);
       expect(expectedName).toContain('wiki-');
       expect(expectedName).toContain('-paragraph-');
+      expect(expectedName).toContain('-openai-');
       expect(expectedName).toContain('-20260209');
     });
 
     it('should create valid collection names for different strategies', () => {
       const strategies = ['paragraph', 'chunked', 'document'];
       const dumpDate = '20260209';
+      const provider = 'nomic-embed-text';
 
       strategies.forEach((strategy) => {
-        const expectedName = `wiki-${strategy}-${dumpDate}`;
-        expect(expectedName).toMatch(/^wiki-[a-z]+-\d{8}$/);
+        const expectedName = `wiki-${strategy}-${provider}-${dumpDate}`;
+        expect(expectedName).toMatch(/^wiki-[a-z]+-[a-z0-9-]+-\d{8}$/);
       });
     });
   });
@@ -68,11 +70,11 @@ describe('CollectionManager', () => {
     };
 
     it('should return true when collection exists', async () => {
-      const { wrapper } = createMockWrapper([{ name: 'wiki-paragraph-20260209' }]);
+      const { wrapper } = createMockWrapper([{ name: 'wiki-paragraph-openai-20260209' }]);
       const manager = new CollectionManager(wrapper);
 
       await expect(
-        manager.collectionExists('wiki-paragraph-20260209')
+        manager.collectionExists('wiki-paragraph-openai-20260209')
       ).resolves.toBe(true);
     });
 
@@ -81,7 +83,7 @@ describe('CollectionManager', () => {
       const manager = new CollectionManager(wrapper);
 
       await expect(
-        manager.collectionExists('wiki-paragraph-20260209')
+        manager.collectionExists('wiki-paragraph-openai-20260209')
       ).resolves.toBe(false);
     });
 
@@ -89,26 +91,26 @@ describe('CollectionManager', () => {
       const { wrapper, mockClient } = createMockWrapper([]);
       const manager = new CollectionManager(wrapper);
 
-      const name = await manager.createCollection('paragraph', '20260209', 1536);
-      expect(name).toBe('wiki-paragraph-20260209');
+      const name = await manager.createCollection('paragraph', 'openai', '20260209', 1536);
+      expect(name).toBe('wiki-paragraph-openai-20260209');
       expect(mockClient.createCollection).toHaveBeenCalled();
     });
 
     it('should throw when creating a collection that already exists', async () => {
-      const { wrapper } = createMockWrapper([{ name: 'wiki-paragraph-20260209' }]);
+      const { wrapper } = createMockWrapper([{ name: 'wiki-paragraph-openai-20260209' }]);
       const manager = new CollectionManager(wrapper);
 
       await expect(
-        manager.createCollection('paragraph', '20260209', 1536)
+        manager.createCollection('paragraph', 'openai', '20260209', 1536)
       ).rejects.toThrow(QdrantError);
     });
 
     it('should delete collection when it exists', async () => {
-      const { wrapper, mockClient } = createMockWrapper([{ name: 'wiki-paragraph-20260209' }]);
+      const { wrapper, mockClient } = createMockWrapper([{ name: 'wiki-paragraph-openai-20260209' }]);
       const manager = new CollectionManager(wrapper);
 
-      await manager.deleteCollection('wiki-paragraph-20260209');
-      expect(mockClient.deleteCollection).toHaveBeenCalledWith('wiki-paragraph-20260209');
+      await manager.deleteCollection('wiki-paragraph-openai-20260209');
+      expect(mockClient.deleteCollection).toHaveBeenCalledWith('wiki-paragraph-openai-20260209');
     });
   });
 });

@@ -27,7 +27,7 @@ describe('QdrantInserter', () => {
     it('should insert batches of embedded paragraphs', async () => {
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
           batchSize: 2,
         },
         mockClient,
@@ -52,7 +52,7 @@ describe('QdrantInserter', () => {
     it('should verify collection exists before insertion', async () => {
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
         },
         mockClient,
         mockCollectionManager
@@ -65,7 +65,7 @@ describe('QdrantInserter', () => {
       }
 
       expect(mockCollectionManager.collectionExists).toHaveBeenCalledWith(
-        'wiki-paragraph-20260210'
+        'wiki-paragraph-openai-20260210'
       );
     });
 
@@ -74,7 +74,7 @@ describe('QdrantInserter', () => {
 
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
         },
         mockClient,
         mockCollectionManager
@@ -95,7 +95,7 @@ describe('QdrantInserter', () => {
 
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
         },
         mockClient,
         mockCollectionManager
@@ -106,20 +106,24 @@ describe('QdrantInserter', () => {
           vector: [0.1, 0.2, 0.3],
           payload: {
             articleTitle: 'Test Article',
+            articleId: '1',
             sectionName: 'Introduction',
             paragraphPosition: 0,
             dumpVersion: '20260210',
             embeddingModel: 'text-embedding-3-small',
+            embeddingProvider: 'openai',
           },
         },
         {
           vector: [0.4, 0.5, 0.6],
           payload: {
             articleTitle: 'Test Article',
+            articleId: '1',
             sectionName: 'Section 1',
             paragraphPosition: 1,
             dumpVersion: '20260210',
             embeddingModel: 'text-embedding-3-small',
+            embeddingProvider: 'openai',
           },
         },
       ];
@@ -146,7 +150,7 @@ describe('QdrantInserter', () => {
     it('should handle empty batches', async () => {
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
         },
         mockClient,
         mockCollectionManager
@@ -169,7 +173,7 @@ describe('QdrantInserter', () => {
 
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
         },
         mockClient,
         mockCollectionManager
@@ -181,7 +185,7 @@ describe('QdrantInserter', () => {
         // Just consume
       }
 
-      expect(mockUpsert).toHaveBeenCalledWith('wiki-paragraph-20260210', {
+      expect(mockUpsert).toHaveBeenCalledWith('wiki-paragraph-openai-20260210', {
         wait: true,
         points: expect.any(Array),
       });
@@ -194,7 +198,7 @@ describe('QdrantInserter', () => {
 
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
         },
         mockClient,
         mockCollectionManager
@@ -214,7 +218,7 @@ describe('QdrantInserter', () => {
 
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
         },
         mockClient,
         mockCollectionManager
@@ -237,7 +241,7 @@ describe('QdrantInserter', () => {
     it('should use default batch size', () => {
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
         },
         mockClient,
         mockCollectionManager
@@ -250,7 +254,7 @@ describe('QdrantInserter', () => {
     it('should use custom batch size', () => {
       const inserter = new QdrantInserter(
         {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
           batchSize: 50,
         },
         mockClient,
@@ -270,10 +274,12 @@ function createMockEmbeddedParagraphs(count: number): EmbeddedParagraph[] {
     vector: [0.1 * i, 0.2 * i, 0.3 * i],
     payload: {
       articleTitle: `Article ${i}`,
+      articleId: `${i}`,
       sectionName: `Section ${i}`,
       paragraphPosition: i,
       dumpVersion: '20260210',
       embeddingModel: 'text-embedding-3-small',
+      embeddingProvider: 'openai',
     },
   }));
 }

@@ -3,7 +3,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createIndexCommand } from '../../src/cli/commands/index-command';
+import {
+  createIndexCommand,
+  validateOptions,
+} from '../../src/cli/commands/index-command';
 
 describe('Index Command', () => {
   describe('createIndexCommand', () => {
@@ -40,8 +43,13 @@ describe('Index Command', () => {
       const command = createIndexCommand();
       const options = command.options;
 
+      const providerOption = options.find(
+        (opt) => opt.long === '--embedding-provider'
+      );
+      expect(providerOption?.defaultValue).toBe('openai');
+
       const modelOption = options.find((opt) => opt.long === '--model');
-      expect(modelOption?.defaultValue).toBe('text-embedding-3-small');
+      expect(modelOption?.defaultValue).toBeUndefined();
 
       const batchSizeOption = options.find((opt) => opt.long === '--batch-size');
       expect(batchSizeOption?.defaultValue).toBe(100);
@@ -49,9 +57,45 @@ describe('Index Command', () => {
   });
 
   describe('Command validation', () => {
-    // Note: These are conceptual tests since the actual validation
-    // happens during command execution. Real validation testing would
-    // require executing the command, which we'll do in integration tests.
+    it('should accept all supported embedding providers', () => {
+      expect(() =>
+        validateOptions({
+          dumpFile: 'dump.xml',
+          strategy: 'paragraph',
+          dumpDate: '20260210',
+          embeddingProvider: 'openai',
+        })
+      ).not.toThrow();
+
+      expect(() =>
+        validateOptions({
+          dumpFile: 'dump.xml',
+          strategy: 'paragraph',
+          dumpDate: '20260210',
+          embeddingProvider: 'nomic-embed-text',
+        })
+      ).not.toThrow();
+
+      expect(() =>
+        validateOptions({
+          dumpFile: 'dump.xml',
+          strategy: 'paragraph',
+          dumpDate: '20260210',
+          embeddingProvider: 'qwen3-embedding',
+        })
+      ).not.toThrow();
+    });
+
+    it('should reject unsupported embedding providers', () => {
+      expect(() =>
+        validateOptions({
+          dumpFile: 'dump.xml',
+          strategy: 'paragraph',
+          dumpDate: '20260210',
+          embeddingProvider: 'gpt-oss-14b',
+        })
+      ).toThrow(/Invalid embedding provider/);
+    });
 
     it('should accept valid strategy values', () => {
       const validStrategies = ['paragraph', 'chunked', 'document'];

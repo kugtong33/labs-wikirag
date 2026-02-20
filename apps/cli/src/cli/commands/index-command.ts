@@ -22,7 +22,7 @@ export interface IndexCommandOptions {
   dumpDate: string;
   /** Embedding provider (openai, nomic-embed-text, qwen3-embedding) (optional) */
   embeddingProvider?: string;
-  /** Embedding model (optional) */
+  /** Embedding model override (provider-specific, optional) */
   model?: string;
   /** Batch size for embedding API calls (optional) */
   batchSize?: number;
@@ -59,8 +59,7 @@ export function createIndexCommand(): Command {
     )
     .option(
       '--model <model>',
-      'Embedding model name (provider-specific)',
-      'text-embedding-3-small'
+      'Embedding model name override (provider-specific)'
     )
     .option(
       '--batch-size <size>',
@@ -95,7 +94,7 @@ export function createIndexCommand(): Command {
  * @param options - Command options to validate
  * @throws Error if validation fails
  */
-function validateOptions(options: IndexCommandOptions): void {
+export function validateOptions(options: IndexCommandOptions): void {
   // Validate dump file path
   if (!options.dumpFile || options.dumpFile.trim() === '') {
     throw new Error('Dump file path cannot be empty');
@@ -124,6 +123,15 @@ function validateOptions(options: IndexCommandOptions): void {
         `Invalid batch size: ${options.batchSize}. Must be between 1 and 2048`
       );
     }
+  }
+
+  // Validate embedding provider
+  const validProviders = ['openai', 'nomic-embed-text', 'qwen3-embedding'];
+  const provider = options.embeddingProvider ?? 'openai';
+  if (!validProviders.includes(provider)) {
+    throw new Error(
+      `Invalid embedding provider: ${provider}. Must be one of: ${validProviders.join(', ')}`
+    );
   }
 
   // Validate model name (basic check)

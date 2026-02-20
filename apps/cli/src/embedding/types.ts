@@ -33,6 +33,7 @@ export interface WikipediaPayload {
   paragraphPosition: number;
   dumpVersion: string;
   embeddingModel: string;
+  embeddingProvider: string;
 }
 
 /**
@@ -107,7 +108,7 @@ export interface PipelineConfig {
   dumpVersion: string;
   /** Embedding strategy (e.g., 'paragraph', 'chunked', 'document') */
   strategy: string;
-  /** Embedding provider name (e.g., 'openai', 'gpt-oss-14b', 'qwen3-14b') */
+  /** Embedding provider name (e.g., 'openai', 'nomic-embed-text', 'qwen3-embedding') */
   embeddingProvider?: string;
   /** Embedding provider configuration */
   embedding: EmbeddingConfig;

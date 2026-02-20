@@ -55,6 +55,7 @@ describe('EmbeddingPipeline', () => {
     config = {
       dumpVersion: '20260210',
       strategy: 'paragraph',
+      embeddingProvider: 'openai',
       embedding: {
         apiKey: 'test-api-key',
         model: 'text-embedding-3-small',
@@ -63,7 +64,7 @@ describe('EmbeddingPipeline', () => {
         baseDelay: 10,
       },
       qdrant: {
-        collectionName: 'wiki-paragraph-20260210',
+        collectionName: 'wiki-paragraph-openai-20260210',
         batchSize: 2,
       },
       logInterval: 5,
@@ -160,7 +161,7 @@ describe('EmbeddingPipeline', () => {
 
       const client = qdrantClient.getClient();
       expect(client.upsert).toHaveBeenCalledWith(
-        'wiki-paragraph-20260210',
+        'wiki-paragraph-openai-20260210',
         expect.any(Object)
       );
     });
@@ -212,11 +213,12 @@ describe('EmbeddingPipeline', () => {
       const minimalConfig: PipelineConfig = {
         dumpVersion: '20260210',
         strategy: 'paragraph',
+        embeddingProvider: 'openai',
         embedding: {
           apiKey: 'test-key',
         },
         qdrant: {
-          collectionName: 'wiki-paragraph-20260210',
+          collectionName: 'wiki-paragraph-openai-20260210',
         },
       };
 

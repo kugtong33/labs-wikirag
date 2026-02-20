@@ -39,6 +39,41 @@ interface IndexingState {
  */
 const DEFAULT_CHECKPOINT_INTERVAL = 100;
 
+const OPENAI_DEFAULT_MODEL = 'text-embedding-3-small';
+
+function resolveEmbeddingModel(
+  embeddingProvider: string,
+  requestedModel?: string
+): string {
+  if (requestedModel && requestedModel.trim() !== '') {
+    return requestedModel;
+  }
+
+  if (embeddingProvider === 'openai') {
+    return OPENAI_DEFAULT_MODEL;
+  }
+
+  return embeddingProvider;
+}
+
+function resolveVectorSize(embeddingProvider: string, embeddingModel: string): number {
+  if (embeddingProvider === 'openai') {
+    return embeddingModel === 'text-embedding-3-large' ? 3072 : 1536;
+  }
+
+  if (embeddingProvider === 'nomic-embed-text') {
+    return 768;
+  }
+
+  if (embeddingProvider === 'qwen3-embedding') {
+    return 1024;
+  }
+
+  throw new Error(
+    `Cannot determine vector size for provider "${embeddingProvider}" and model "${embeddingModel}"`
+  );
+}
+
 /**
  * Run Wikipedia indexing with checkpoint/resume support
  *
@@ -47,11 +82,15 @@ const DEFAULT_CHECKPOINT_INTERVAL = 100;
 export async function runIndexing(options: IndexCommandOptions): Promise<void> {
   const checkpointFile =
     options.checkpointFile || getCheckpointPath(options.strategy);
+  const embeddingProvider = options.embeddingProvider || 'openai';
+  const embeddingModel = resolveEmbeddingModel(embeddingProvider, options.model);
 
   // Load or create checkpoint
   const { checkpoint, isResume } = await loadOrCreateCheckpoint(
     checkpointFile,
-    options
+    options,
+    embeddingProvider,
+    embeddingModel
   );
 
   console.log('\n🚀 Starting Wikipedia Indexing');
@@ -59,8 +98,8 @@ export async function runIndexing(options: IndexCommandOptions): Promise<void> {
   console.log(`Dump file: ${options.dumpFile}`);
   console.log(`Strategy: ${options.strategy}`);
   console.log(`Dump date: ${options.dumpDate}`);
-  console.log(`Provider: ${options.embeddingProvider || 'openai'}`);
-  console.log(`Model: ${options.model || 'text-embedding-3-small'}`);
+  console.log(`Provider: ${embeddingProvider}`);
+  console.log(`Model: ${embeddingModel}`);
   console.log(`Batch size: ${options.batchSize || 100}`);
   console.log(`Collection: ${checkpoint.collectionName}`);
 
@@ -88,10 +127,22 @@ export async function runIndexing(options: IndexCommandOptions): Promise<void> {
     await qdrantClient.connect();
 
     // Ensure collection exists
-    await ensureCollection(checkpoint.collectionName, options);
+    await ensureCollection(
+      checkpoint.collectionName,
+      options,
+      embeddingProvider,
+      embeddingModel
+    );
 
     // Run indexing pipeline with resume support
-    await runIndexingPipeline(state, options, checkpointFile, isResume);
+    await runIndexingPipeline(
+      state,
+      options,
+      checkpointFile,
+      isResume,
+      embeddingProvider,
+      embeddingModel
+    );
 
     console.log('\n✅ Indexing completed successfully!');
     console.log(`Total articles processed: ${state.checkpoint.articlesProcessed}`);
@@ -113,11 +164,11 @@ export async function runIndexing(options: IndexCommandOptions): Promise<void> {
  */
 async function loadOrCreateCheckpoint(
   checkpointFile: string,
-  options: IndexCommandOptions
+  options: IndexCommandOptions,
+  embeddingProvider: string,
+  embeddingModel: string
 ): Promise<{ checkpoint: CheckpointData; isResume: boolean }> {
-  const embeddingProvider = options.embeddingProvider || 'openai';
   const collectionName = `wiki-${options.strategy}-${embeddingProvider}-${options.dumpDate}`;
-  const embeddingModel = options.model || 'text-embedding-3-small';
 
   // Check if checkpoint exists
   if (await checkpointExists(checkpointFile)) {
@@ -166,19 +217,20 @@ async function loadOrCreateCheckpoint(
  */
 async function ensureCollection(
   collectionName: string,
-  options: IndexCommandOptions
+  options: IndexCommandOptions,
+  embeddingProvider: string,
+  embeddingModel: string
 ): Promise<void> {
   const exists = await collectionManager.collectionExists(collectionName);
 
   if (!exists) {
     console.log(`📦 Creating collection: ${collectionName}`);
 
-    // Determine vector size based on model
-    const vectorSize =
-      options.model === 'text-embedding-3-large' ? 3072 : 1536;
+    const vectorSize = resolveVectorSize(embeddingProvider, embeddingModel);
 
     await collectionManager.createCollection(
       options.strategy,
+      embeddingProvider,
       options.dumpDate,
       vectorSize
     );
@@ -201,7 +253,9 @@ async function runIndexingPipeline(
   state: IndexingState,
   options: IndexCommandOptions,
   checkpointFile: string,
-  isResume: boolean
+  isResume: boolean,
+  embeddingProvider: string,
+  embeddingModel: string
 ): Promise<void> {
   const paragraphs = parseWikipediaDump(options.dumpFile);
   const filteredParagraphs = filterParagraphs(
@@ -215,10 +269,10 @@ async function runIndexingPipeline(
   const pipeline = new EmbeddingPipeline({
     dumpVersion: options.dumpDate,
     strategy: options.strategy,
-    embeddingProvider: options.embeddingProvider || 'openai',
+    embeddingProvider,
     embedding: {
       apiKey: process.env.OPENAI_API_KEY || '',
-      model: options.model || 'text-embedding-3-small',
+      model: embeddingModel,
       batchSize: options.batchSize || 100,
     },
     qdrant: {

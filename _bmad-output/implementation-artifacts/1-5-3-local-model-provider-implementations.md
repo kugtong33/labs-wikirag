@@ -1,6 +1,6 @@
 # Story 1-5.3: Local Model Provider Implementations
 
-Status: review
+Status: done
 
 ## Story
 
@@ -97,6 +97,10 @@ Infrastructure (Docker, .env files, README docs) belongs to **Story 1.5.2**.
   - [x] Test `listAvailableModels()` parsing response
   - [x] Test timeout handling
   - [x] Target: minimum 5 tests for health utilities
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][Low] Replace/remove legacy CLI tests that reference deleted OpenAI client and stale batch-processor API to keep full-suite health visible [apps/cli/tests/embedding/openai-client.test.ts:6]
 
 ## Dev Notes
 
@@ -338,6 +342,7 @@ None — all tasks completed without issues. All 57 tests pass (34 baseline + 16
 - Task 5: Updated `--embedding-provider` option description and JSDoc comment in `apps/cli/src/cli/commands/index-command.ts` to list `nomic-embed-text` and `qwen3-embedding` instead of obsolete `gpt-oss-14b`/`qwen3-14b` names.
 - Task 6: 16 tests for `OllamaProvider` covering constructor, getModelInfo, validateConfig (valid/empty/whitespace model), embedBatch (empty, endpoint URL, success, error, dimension caching, retry, retry exhaustion), and embed (success + throws on failure).
 - Task 7: 7 tests for health utilities covering `checkOllamaConnection` (ok/network error/non-ok status/AbortError) and `listAvailableModels` (success/server error/AbortError timeout message).
+- Senior review fixes: resolved provider model override bug caused by CLI default model, aligned collection creation naming and API to `wiki-{strategy}-{provider}-{date}`, added `embeddingProvider` to Qdrant payload metadata, replaced provider/model vector-size inference with provider-aware logic, and added validation-focused CLI tests.
 
 ### File List
 
@@ -347,7 +352,37 @@ None — all tasks completed without issues. All 57 tests pass (34 baseline + 16
 - `packages/embeddings/tests/providers/ollama.test.ts` (created)
 - `packages/embeddings/tests/providers/ollama-health.test.ts` (created)
 - `apps/cli/src/cli/commands/index-command.ts` (modified)
+- `apps/cli/src/cli/commands/index-runner.ts` (modified during code review)
+- `apps/cli/src/embedding/batch-processor.ts` (modified during code review)
+- `apps/cli/src/embedding/pipeline.ts` (modified during code review)
+- `apps/cli/src/embedding/qdrant-inserter.ts` (modified during code review)
+- `apps/cli/src/embedding/types.ts` (modified during code review)
+- `apps/cli/tests/cli/index-command.test.ts` (modified during code review)
+- `apps/cli/tests/embedding/pipeline.test.ts` (modified during code review)
+- `apps/cli/tests/embedding/qdrant-inserter.test.ts` (modified during code review)
+- `packages/qdrant/src/collections.ts` (modified during code review)
+- `packages/qdrant/src/types.ts` (modified during code review)
+- `packages/qdrant/tests/collections.test.ts` (modified during code review)
+- `_bmad-output/implementation-artifacts/1-5-3-local-model-provider-implementations.md` (modified during code review)
+
+### Senior Developer Review (AI)
+
+- Reviewer: kugtong33
+- Date: 2026-02-20
+- Outcome: Changes Requested -> Fixed (High/Medium), one Low follow-up recorded
+- Validation summary:
+  - ACs and task claims cross-checked against implementation and runtime call paths
+  - Collection naming and provider metadata flow verified end-to-end through CLI pipeline and Qdrant insertion
+  - Provider/model resolution validated for OpenAI and local Ollama providers
+  - Git/story discrepancies resolved by updating Story artifacts and File List
+- Targeted verification performed:
+  - `pnpm --filter @wikirag/qdrant test` (pass)
+  - `pnpm --filter @wikirag/embeddings test` (pass)
+  - `pnpm --filter @wikirag/qdrant build && pnpm --filter @wikirag/cli build` (pass)
+  - `pnpm --filter @wikirag/cli exec vitest tests/cli/index-command.test.ts` (pass)
+  - `pnpm --filter @wikirag/cli exec vitest tests/embedding/qdrant-inserter.test.ts` (pass)
 
 ### Change Log
 
 - 2026-02-20: Story 1.5.3 implemented — OllamaProvider class, OllamaApiError, health check utilities, nomic-embed-text and qwen3-embedding provider registrations, CLI help text update, 23 new tests (16 + 7). All 57 tests pass.
+- 2026-02-20: Senior AI code review fixes applied — fixed provider/model resolution for local providers, corrected provider-aware collection creation flow, added embeddingProvider payload metadata, updated provider-aware vector size resolution, extended CLI validation tests, and recorded one low-severity legacy test-suite follow-up.

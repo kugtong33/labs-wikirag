@@ -10,18 +10,24 @@ export class CollectionManager {
   constructor(private clientWrapper: QdrantClientWrapper) {}
 
   /**
-   * Create a collection name following the wiki-{strategy}-{dump_date} convention
+   * Create a collection name following the wiki-{strategy}-{provider}-{dump_date} convention
    * @param strategy - Embedding strategy (e.g., "paragraph", "chunked", "document")
+   * @param provider - Embedding provider (e.g., "openai", "nomic-embed-text")
    * @param dumpDate - Wikipedia dump date in YYYYMMDD format
    * @returns Formatted collection name
    */
-  private formatCollectionName(strategy: string, dumpDate: string): string {
-    return `wiki-${strategy}-${dumpDate}`;
+  private formatCollectionName(
+    strategy: string,
+    provider: string,
+    dumpDate: string
+  ): string {
+    return `wiki-${strategy}-${provider}-${dumpDate}`;
   }
 
   /**
    * Create a new Qdrant collection for Wikipedia embeddings
    * @param strategy - Embedding strategy name
+   * @param provider - Embedding provider name
    * @param dumpDate - Wikipedia dump date (YYYYMMDD format)
    * @param vectorSize - Dimension size of embeddings (e.g., 1536 for text-embedding-3-small)
    * @param distance - Distance metric (default: Cosine)
@@ -29,11 +35,12 @@ export class CollectionManager {
    */
   async createCollection(
     strategy: string,
+    provider: string,
     dumpDate: string,
     vectorSize: number,
     distance: 'Cosine' | 'Euclid' | 'Dot' = 'Cosine'
   ): Promise<string> {
-    const collectionName = this.formatCollectionName(strategy, dumpDate);
+    const collectionName = this.formatCollectionName(strategy, provider, dumpDate);
 
     try {
       await this.clientWrapper.ensureConnected();

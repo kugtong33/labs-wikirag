@@ -29,6 +29,8 @@ export interface BatchProcessorConfig {
   embeddingModel: string;
   /** Embedding provider instance */
   embeddingProvider: EmbeddingProvider;
+  /** Embedding provider name */
+  embeddingProviderName: string;
 }
 
 /**
@@ -68,6 +70,7 @@ export class BatchProcessor {
       dumpVersion: config.dumpVersion,
       embeddingModel: config.embeddingModel,
       embeddingProvider: config.embeddingProvider,
+      embeddingProviderName: config.embeddingProviderName,
     };
     this.metrics = { apiCallsMade: 0, rateLimitHits: 0 };
   }
@@ -240,7 +243,7 @@ export class BatchProcessor {
     return R.curry(
       (paragraph: ParsedParagraph, embedding: number[]): EmbeddedParagraph => ({
         vector: embedding,
-        payload: this.createPayload(paragraph, dumpVersion, embeddingModel),
+      payload: this.createPayload(paragraph, dumpVersion, embeddingModel),
       })
     );
   }
@@ -265,6 +268,7 @@ export class BatchProcessor {
       paragraphPosition: paragraph.paragraphPosition,
       dumpVersion,
       embeddingModel,
+      embeddingProvider: this.config.embeddingProviderName,
     };
   }
 

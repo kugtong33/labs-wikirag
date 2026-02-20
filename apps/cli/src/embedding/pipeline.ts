@@ -34,12 +34,13 @@ const DEFAULT_LOG_INTERVAL = 1000;
  * const pipeline = new EmbeddingPipeline({
  *   dumpVersion: '20260210',
  *   strategy: 'paragraph',
+ *   embeddingProvider: 'openai',
  *   embedding: {
  *     apiKey: process.env.OPENAI_API_KEY!,
  *     model: 'text-embedding-3-small'
  *   },
  *   qdrant: {
- *     collectionName: 'wiki-paragraph-20260210'
+ *     collectionName: 'wiki-paragraph-openai-20260210'
  *   },
  *   logInterval: 1000
  * });
@@ -95,6 +96,7 @@ export class EmbeddingPipeline {
         dumpVersion: this.config.dumpVersion,
         embeddingModel: this.config.embedding.model ?? 'text-embedding-3-small',
         embeddingProvider,
+        embeddingProviderName: this.config.embeddingProvider ?? 'openai',
         batchSize: this.config.embedding.batchSize,
       });
 
@@ -145,6 +147,7 @@ export class EmbeddingPipeline {
         dumpVersion: this.config.dumpVersion,
         embeddingModel: this.config.embedding.model ?? 'text-embedding-3-small',
         embeddingProvider,
+        embeddingProviderName: this.config.embeddingProvider ?? 'openai',
         batchSize: this.config.embedding.batchSize,
       });
 

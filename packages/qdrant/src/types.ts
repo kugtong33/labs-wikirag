@@ -15,8 +15,11 @@ export interface WikipediaPayload {
   /** Wikipedia dump date in YYYYMMDD format */
   dumpVersion: string;
 
-  /** OpenAI embedding model used (e.g., "text-embedding-3-small") */
+  /** Embedding model used (e.g., "text-embedding-3-small", "nomic-embed-text") */
   embeddingModel: string;
+
+  /** Embedding provider used to generate vectors (e.g., "openai", "qwen3-embedding") */
+  embeddingProvider: string;
 }
 
 /**
@@ -41,7 +44,7 @@ export interface SearchResult {
  * Configuration for creating a Qdrant collection
  */
 export interface CollectionConfig {
-  /** Collection name following wiki-{strategy}-{dump_date} convention */
+  /** Collection name following wiki-{strategy}-{provider}-{dump_date} convention */
   name: string;
 
   /** Dimension size of the vector embeddings */
