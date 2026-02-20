@@ -1,6 +1,6 @@
 # Story 1-5.2: Local LLM Infrastructure Setup
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -33,27 +33,27 @@ All TypeScript provider code (OllamaProvider, health utilities, registry registr
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add Ollama service to Docker Compose infrastructure (AC: 1, 3)
-  - [ ] Add `ollama` service to docker-compose.yml with GPU passthrough
-  - [ ] Configure volume mount for model persistence (`ollama-data`)
-  - [ ] Add health check using Ollama API endpoint (`curl -f http://localhost:11434/`)
-  - [ ] Ensure Ollama service starts alongside Qdrant
-  - [ ] Add `docker-compose.cpu.yml` override for CPU-only fallback (no GPU reservation)
+- [x] Task 1: Add Ollama service to Docker Compose infrastructure (AC: 1, 3)
+  - [x] Add `ollama` service to docker-compose.yml with GPU passthrough
+  - [x] Configure volume mount for model persistence (`ollama-data`)
+  - [x] Add health check using Ollama API endpoint (`curl -f http://localhost:11434/`)
+  - [x] Ensure Ollama service starts alongside Qdrant
+  - [x] Add `docker-compose.cpu.yml` override for CPU-only fallback (no GPU reservation)
 
-- [ ] Task 2: Update environment configuration for local LLM (AC: 1)
-  - [ ] Add `OLLAMA_BASE_URL=http://localhost:11434` to `apps/cli/.env.example`
-  - [ ] Add `OLLAMA_BASE_URL=http://localhost:11434` to `apps/api/.env.example`
-  - [ ] Add comments documenting available embedding providers and model names
+- [x] Task 2: Update environment configuration for local LLM (AC: 1)
+  - [x] Add `OLLAMA_BASE_URL=http://localhost:11434` to `apps/cli/.env.example`
+  - [x] Add `OLLAMA_BASE_URL=http://localhost:11434` to `apps/api/.env.example`
+  - [x] Add comments documenting available embedding providers and model names
 
-- [ ] Task 3: Update README.md with local LLM setup documentation (AC: 1, 2)
-  - [ ] Add "Local Embedding Providers" section to project README.md
-  - [ ] Document Ollama installation steps (native install via `curl -fsSL https://ollama.com/install.sh | sh`)
-  - [ ] Document Docker-based Ollama setup (`docker compose up ollama`)
-  - [ ] Document model pulling: `ollama pull nomic-embed-text` and `ollama pull qwen3-embedding`
-  - [ ] Document GPU requirements and setup (NVIDIA GTX 1070+, NVIDIA Container Toolkit for Docker)
-  - [ ] Document environment variable configuration (`OLLAMA_BASE_URL`)
-  - [ ] Document verification steps: `curl http://localhost:11434/` and `ollama list`
-  - [ ] Include model comparison note: nomic-embed-text (274MB, 768 dims) vs qwen3-embedding (639MB-4.7GB, up to 4096 dims)
+- [x] Task 3: Update README.md with local LLM setup documentation (AC: 1, 2)
+  - [x] Add "Local Embedding Providers" section to project README.md
+  - [x] Document Ollama installation steps (native install via `curl -fsSL https://ollama.com/install.sh | sh`)
+  - [x] Document Docker-based Ollama setup (`docker compose up ollama`)
+  - [x] Document model pulling: `ollama pull nomic-embed-text` and `ollama pull qwen3-embedding`
+  - [x] Document GPU requirements and setup (NVIDIA GTX 1070+, NVIDIA Container Toolkit for Docker)
+  - [x] Document environment variable configuration (`OLLAMA_BASE_URL`)
+  - [x] Document verification steps: `curl http://localhost:11434/` and `ollama list`
+  - [x] Include model comparison note: nomic-embed-text (274MB, 768 dims) vs qwen3-embedding (639MB-4.7GB, up to 4096 dims)
 
 ## Dev Notes
 
@@ -146,12 +146,26 @@ Content-Type: application/json
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+claude-sonnet-4-6
 
 ### Debug Log References
 
+None — all tasks completed without issues.
+
 ### Completion Notes List
+
+- Task 1: Added `ollama` service to `docker-compose.yml` with NVIDIA GPU passthrough, `ollama-data` volume mount for persistence, and health check via `curl -f http://localhost:11434/`. Created `docker-compose.cpu.yml` override that clears the `deploy.resources.reservations` section for CPU-only systems.
+- Task 2: Updated `apps/cli/.env.example` and `apps/api/.env.example` with `OLLAMA_BASE_URL=http://localhost:11434`, `EMBEDDING_PROVIDER` selector, and inline comments listing both supported models with size/dimension info.
+- Task 3: Created root-level `README.md` covering: project overview, quick start, infrastructure service table, GPU vs CPU Docker commands, Option A (Docker Ollama) and Option B (native install), model pull instructions, `curl`/`ollama list` verification steps, environment variable configuration section, and model comparison table.
 
 ### File List
 
+- `docker-compose.yml` (modified)
+- `docker-compose.cpu.yml` (created)
+- `apps/cli/.env.example` (modified)
+- `apps/api/.env.example` (modified)
+- `README.md` (created)
+
 ### Change Log
+
+- 2026-02-20: Story 1.5.2 implemented — Ollama Docker service added, CPU override file created, env.example files updated with OLLAMA_BASE_URL and provider docs, README.md created with full local LLM setup guide.
