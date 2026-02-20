@@ -52,7 +52,7 @@ development_status:
   1-5-1-embedding-provider-abstraction-layer: done
   1-5-2-local-llm-infrastructure-setup: review
   1-5-3-local-model-provider-implementations: review
-  1-5-4-provider-benchmarking-and-quality-comparison: ready-for-dev
+  1-5-4-provider-benchmarking-and-quality-comparison: review
   epic-1-5-retrospective: optional
 
   epic-2: backlog

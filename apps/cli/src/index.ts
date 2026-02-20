@@ -9,6 +9,8 @@
 
 import { Command } from 'commander';
 import { createIndexCommand } from './cli/commands/index-command.js';
+import { createBenchmarkCommand } from './cli/commands/benchmark-command.js';
+import { createQualityCommand } from './cli/commands/quality-command.js';
 
 /**
  * Main CLI program
@@ -23,6 +25,8 @@ async function main() {
 
   // Register commands
   program.addCommand(createIndexCommand());
+  program.addCommand(createBenchmarkCommand());
+  program.addCommand(createQualityCommand());
 
   // Parse command line arguments
   await program.parseAsync(process.argv);

@@ -1,6 +1,6 @@
 # Story 1-5.4: Provider Benchmarking & Quality Comparison
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -27,70 +27,70 @@ So that I can make data-driven decisions about which provider to use.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Define benchmark types and result interfaces (AC: 1)
-  - [ ] Create `packages/embeddings/src/benchmark-types.ts` with benchmark result types
-  - [ ] Define `BenchmarkResult` interface: provider, model, dimensions, embeddingsPerSec, avgLatencyMs, p95LatencyMs, p99LatencyMs, memoryUsageMb, totalTexts, totalDurationMs
-  - [ ] Define `BenchmarkConfig` interface: sampleTexts, warmupRounds, benchmarkRounds, batchSize
-  - [ ] Define `QualityComparisonResult` interface: provider, query, results (ranked list with scores), precision, recall, relevance
-  - [ ] Export types from `packages/embeddings/src/index.ts`
+- [x] Task 1: Define benchmark types and result interfaces (AC: 1)
+  - [x] Create `packages/embeddings/src/benchmark-types.ts` with benchmark result types
+  - [x] Define `BenchmarkResult` interface: provider, model, dimensions, embeddingsPerSec, avgLatencyMs, p95LatencyMs, p99LatencyMs, memoryUsageMb, totalTexts, totalDurationMs
+  - [x] Define `BenchmarkConfig` interface: sampleTexts, warmupRounds, benchmarkRounds, batchSize
+  - [x] Define `QualityComparisonResult` interface: provider, query, results (ranked list with scores), precision, recall, relevance
+  - [x] Export types from `packages/embeddings/src/index.ts`
 
-- [ ] Task 2: Implement provider benchmark runner (AC: 1)
-  - [ ] Create `packages/embeddings/src/benchmark.ts` with `runBenchmark(provider, config)` function
-  - [ ] Implement warmup phase: run N warmup rounds (discarded) to load models into memory
-  - [ ] Implement timing phase: run N benchmark rounds, collect per-batch latency
-  - [ ] Calculate performance stats: embeddingsPerSec, avgLatencyMs, p95, p99 using Ramda
-  - [ ] Track memory usage via `process.memoryUsage().heapUsed` before/after
-  - [ ] Collect ModelInfo from provider for dimensions and metadata
-  - [ ] Return `BenchmarkResult` with all metrics
+- [x] Task 2: Implement provider benchmark runner (AC: 1)
+  - [x] Create `packages/embeddings/src/benchmark.ts` with `runBenchmark(provider, config)` function
+  - [x] Implement warmup phase: run N warmup rounds (discarded) to load models into memory
+  - [x] Implement timing phase: run N benchmark rounds, collect per-batch latency
+  - [x] Calculate performance stats: embeddingsPerSec, avgLatencyMs, p95, p99 using Ramda
+  - [x] Track memory usage via `process.memoryUsage().heapUsed` before/after
+  - [x] Collect ModelInfo from provider for dimensions and metadata
+  - [x] Return `BenchmarkResult` with all metrics
 
-- [ ] Task 3: Create CLI benchmark command (AC: 1)
-  - [ ] Create `apps/cli/src/cli/commands/benchmark-command.ts` with Commander.js
-  - [ ] Add `benchmark` subcommand: `wikirag benchmark [--providers <list>] [--sample-file <path>] [--rounds <n>]`
-  - [ ] `--providers` flag: comma-separated list or `all` for all registered providers (default: `all`)
-  - [ ] `--sample-file` flag: path to text file with sample paragraphs (one per line)
-  - [ ] `--rounds` flag: number of benchmark rounds (default: 5)
-  - [ ] `--batch-size` flag: batch size per round (default: 10)
-  - [ ] Include built-in sample paragraphs (5-10 hardcoded Wikipedia-style paragraphs) as fallback
-  - [ ] Register command in CLI entry point
+- [x] Task 3: Create CLI benchmark command (AC: 1)
+  - [x] Create `apps/cli/src/cli/commands/benchmark-command.ts` with Commander.js
+  - [x] Add `benchmark` subcommand: `wikirag benchmark [--providers <list>] [--sample-file <path>] [--rounds <n>]`
+  - [x] `--providers` flag: comma-separated list or `all` for all registered providers (default: `all`)
+  - [x] `--sample-file` flag: path to text file with sample paragraphs (one per line)
+  - [x] `--rounds` flag: number of benchmark rounds (default: 5)
+  - [x] `--batch-size` flag: batch size per round (default: 10)
+  - [x] Include built-in sample paragraphs (5-10 hardcoded Wikipedia-style paragraphs) as fallback
+  - [x] Register command in CLI entry point
 
-- [ ] Task 4: Implement benchmark result formatting and display (AC: 1)
-  - [ ] Create `apps/cli/src/cli/commands/benchmark-formatter.ts`
-  - [ ] Format results as aligned console table with columns: Provider, Model, Dimensions, Emb/sec, Avg Latency, P95, P99, Memory
-  - [ ] Sort providers by embeddings/sec (fastest first)
-  - [ ] Use Ramda for all data transformation and sorting
-  - [ ] Display summary comparison at end of benchmark run
-  - [ ] Output machine-readable JSON when `--json` flag is used
+- [x] Task 4: Implement benchmark result formatting and display (AC: 1)
+  - [x] Create `apps/cli/src/cli/commands/benchmark-formatter.ts`
+  - [x] Format results as aligned console table with columns: Provider, Model, Dimensions, Emb/sec, Avg Latency, P95, P99, Memory
+  - [x] Sort providers by embeddings/sec (fastest first)
+  - [x] Use Ramda for all data transformation and sorting
+  - [x] Display summary comparison at end of benchmark run
+  - [x] Output machine-readable JSON when `--json` flag is used
 
-- [ ] Task 5: Implement quality comparison utility (AC: 2)
-  - [ ] Create `apps/cli/src/cli/commands/quality-command.ts` with Commander.js
-  - [ ] Add `quality` subcommand: `wikirag quality --query <text> --collections <list>`
-  - [ ] `--query` flag: search query text
-  - [ ] `--collections` flag: comma-separated Qdrant collection names to compare
-  - [ ] `--top-k` flag: number of results per collection (default: 5)
-  - [ ] For each collection: query Qdrant, retrieve top-k results with scores
-  - [ ] Display side-by-side comparison of results from each collection
-  - [ ] Show vector similarity scores and result overlap between providers
+- [x] Task 5: Implement quality comparison utility (AC: 2)
+  - [x] Create `apps/cli/src/cli/commands/quality-command.ts` with Commander.js
+  - [x] Add `quality` subcommand: `wikirag quality --query <text> --collections <list>`
+  - [x] `--query` flag: search query text
+  - [x] `--collections` flag: comma-separated Qdrant collection names to compare
+  - [x] `--top-k` flag: number of results per collection (default: 5)
+  - [x] For each collection: query Qdrant, retrieve top-k results with scores
+  - [x] Display side-by-side comparison of results from each collection
+  - [x] Show vector similarity scores and result overlap between providers
 
-- [ ] Task 6: Write comprehensive tests (AC: All)
-  - [ ] Create `packages/embeddings/tests/benchmark.test.ts`
-  - [ ] Test `runBenchmark()` with mocked provider returning fixed embeddings
-  - [ ] Test warmup phase runs correct number of rounds
-  - [ ] Test latency calculation (avg, p95, p99) with known inputs
-  - [ ] Test embeddings/sec calculation
-  - [ ] Test memory tracking produces positive values
-  - [ ] Create `apps/cli/tests/commands/benchmark-command.test.ts`
-  - [ ] Test CLI argument parsing for benchmark command
-  - [ ] Test built-in sample paragraphs are available
-  - [ ] Test JSON output flag
-  - [ ] Target: minimum 12 tests total
+- [x] Task 6: Write comprehensive tests (AC: All)
+  - [x] Create `packages/embeddings/tests/benchmark.test.ts`
+  - [x] Test `runBenchmark()` with mocked provider returning fixed embeddings
+  - [x] Test warmup phase runs correct number of rounds
+  - [x] Test latency calculation (avg, p95, p99) with known inputs
+  - [x] Test embeddings/sec calculation
+  - [x] Test memory tracking produces positive values
+  - [x] Create `apps/cli/tests/commands/benchmark-command.test.ts`
+  - [x] Test CLI argument parsing for benchmark command
+  - [x] Test built-in sample paragraphs are available
+  - [x] Test JSON output flag
+  - [x] Target: minimum 12 tests total (40 new tests delivered: 17 embeddings + 23 CLI)
 
-- [ ] Task 7: Update README.md with provider comparison documentation (AC: 3)
-  - [ ] Add "Embedding Providers" section to project README.md
-  - [ ] Create provider comparison table with columns: Provider, Model, Dimensions, Cost, Speed, Quality, Hardware
-  - [ ] Document how to run benchmarks (`wikirag benchmark`)
-  - [ ] Document how to run quality comparisons (`wikirag quality`)
-  - [ ] Add guidance for choosing providers based on use case
-  - [ ] Include hardware requirements (i7-6700K + NVIDIA GTX 1070 minimum for local providers)
+- [x] Task 7: Update README.md with provider comparison documentation (AC: 3)
+  - [x] Add "Embedding Providers" section to project README.md
+  - [x] Create provider comparison table with columns: Provider, Model, Dimensions, Cost, Speed, Quality, Hardware
+  - [x] Document how to run benchmarks (`wikirag benchmark`)
+  - [x] Document how to run quality comparisons (`wikirag quality`)
+  - [x] Add guidance for choosing providers based on use case
+  - [x] Include hardware requirements (i7-6700K + NVIDIA GTX 1070 minimum for local providers)
 
 ## Dev Notes
 
@@ -363,12 +363,32 @@ This allows the benchmark to run against any registered provider without manual 
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+claude-sonnet-4-6
 
 ### Debug Log References
 
+No debug issues encountered. Pre-existing CLI test failures (pipeline.test.ts, batch-processor.test.ts) confirmed pre-existing from Story 1.5.1 naming convention change — not introduced by this story.
+
 ### Completion Notes List
+
+- 40 new tests delivered (17 in packages/embeddings/tests/benchmark.test.ts + 23 in apps/cli/tests/commands/benchmark-command.test.ts), exceeding the 12-test minimum
+- `extractProviderFromCollection()` exported from quality-command.ts and tested in benchmark-command.test.ts
+- Quality command uses naive precision/recall with 0.5 score threshold (no ground-truth labels available at CLI level)
+- Memory delta clamped to 0 via Math.max(0, ...) to handle GC during benchmark
 
 ### File List
 
+- `packages/embeddings/src/benchmark-types.ts` — NEW: BenchmarkConfig, BenchmarkResult, QualityResult, QualityComparisonResult
+- `packages/embeddings/src/benchmark.ts` — NEW: runBenchmark(), calculatePercentile()
+- `packages/embeddings/src/index.ts` — MODIFIED: added benchmark type/function exports
+- `packages/embeddings/tests/benchmark.test.ts` — NEW: 17 tests for benchmark runner
+- `apps/cli/src/cli/commands/benchmark-command.ts` — NEW: benchmark CLI command
+- `apps/cli/src/cli/commands/benchmark-formatter.ts` — NEW: table and JSON formatting
+- `apps/cli/src/cli/commands/quality-command.ts` — NEW: quality comparison CLI command
+- `apps/cli/src/index.ts` — MODIFIED: registered benchmark and quality commands
+- `apps/cli/tests/commands/benchmark-command.test.ts` — NEW: 23 CLI command tests
+- `README.md` — MODIFIED: added Embedding Providers section with comparison table and command docs
+
 ### Change Log
+
+2026-02-20: Story implemented by claude-sonnet-4-6

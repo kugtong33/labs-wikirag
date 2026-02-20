@@ -9,6 +9,15 @@
 
 // Core interfaces and types
 export type { EmbeddingProvider } from './provider.js';
+
+// Benchmark types and runner
+export type {
+  BenchmarkConfig,
+  BenchmarkResult,
+  QualityResult,
+  QualityComparisonResult,
+} from './benchmark-types.js';
+export { runBenchmark, calculatePercentile } from './benchmark.js';
 export type {
   ModelInfo,
   ProviderConfig,
