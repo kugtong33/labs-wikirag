@@ -3,13 +3,33 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "vite build",
+    "dev": "vite",
     "lint": "eslint .",
-    "test": "echo \"No tests yet\""
+    "test": "vitest",
+    "preview": "vite preview"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "@wikirag/tsconfig": "workspace:*",
-    "typescript": "^5.9.3"
+    "jsdom": "^26.1.0",
+    "tailwindcss": "^4.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.1",
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.0",
+    "zustand": "^5.0.11"
   }
 }
