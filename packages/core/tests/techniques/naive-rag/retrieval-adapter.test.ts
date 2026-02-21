@@ -27,19 +27,21 @@ function makeSearchResult(
   id: number,
   score: number,
   articleTitle: string,
-  sectionName = ''
+  sectionName = '',
+  paragraphText?: string,
 ): SearchResult {
   return {
     id,
     score,
     payload: {
+      paragraphText,
       articleTitle,
       sectionName,
       paragraphPosition: 0,
       dumpVersion: '20260215',
       embeddingModel: 'text-embedding-3-small',
       embeddingProvider: 'openai',
-    },
+    } as unknown as SearchResult['payload'],
   };
 }
 
@@ -113,6 +115,18 @@ describe('NaiveRagRetrievalAdapter', () => {
     expect(searchManager.similaritySearch).toHaveBeenCalledWith('test', QUERY_VECTOR, 5, 0.7);
   });
 
+  it('clamps topK below 5 up to 5', async () => {
+    const ctx = makeContext({ config: { topK: 1, collectionName: 'test' } });
+    await adapter.execute(ctx);
+    expect(searchManager.similaritySearch).toHaveBeenCalledWith('test', QUERY_VECTOR, 5, undefined);
+  });
+
+  it('clamps topK above 10 down to 10', async () => {
+    const ctx = makeContext({ config: { topK: 50, collectionName: 'test' } });
+    await adapter.execute(ctx);
+    expect(searchManager.similaritySearch).toHaveBeenCalledWith('test', QUERY_VECTOR, 10, undefined);
+  });
+
   it('populates retrievedDocuments from search results', async () => {
     const ctx = makeContext();
     const result = await adapter.execute(ctx);
@@ -124,6 +138,23 @@ describe('NaiveRagRetrievalAdapter', () => {
     const result = await adapter.execute(ctx);
     expect(result.retrievedDocuments![0].content).toBe('Quantum computing — Introduction');
     expect(result.retrievedDocuments![1].content).toBe('Quantum mechanics — Applications');
+  });
+
+  it('prefers paragraphText content when present in payload', async () => {
+    (searchManager.similaritySearch as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeSearchResult(
+        1,
+        0.9,
+        'Quantum computing',
+        'Introduction',
+        'Quantum computing is a type of computation that uses qubits.',
+      ),
+    ]);
+    const ctx = makeContext();
+    const result = await adapter.execute(ctx);
+    expect(result.retrievedDocuments![0].content).toBe(
+      'Quantum computing is a type of computation that uses qubits.',
+    );
   });
 
   it('omits section separator when sectionName is empty', async () => {

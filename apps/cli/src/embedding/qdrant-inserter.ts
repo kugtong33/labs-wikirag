@@ -149,6 +149,7 @@ export class QdrantInserter {
       id: this.generatePointId(paragraph, index),
       vector: paragraph.vector,
       payload: {
+        paragraphText: paragraph.payload.paragraphText,
         articleTitle: paragraph.payload.articleTitle,
         sectionName: paragraph.payload.sectionName,
         paragraphPosition: paragraph.payload.paragraphPosition,

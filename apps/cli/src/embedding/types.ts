@@ -27,6 +27,7 @@ export interface EmbeddedParagraph {
  * Metadata payload schema for Qdrant points
  */
 export interface WikipediaPayload {
+  paragraphText?: string;
   articleTitle: string;
   articleId: string;
   sectionName: string;

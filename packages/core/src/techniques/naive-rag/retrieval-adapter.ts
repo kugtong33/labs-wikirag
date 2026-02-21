@@ -17,15 +17,17 @@ import type { SearchManager, SearchResult } from '@wikirag/qdrant';
 /**
  * Map a Qdrant SearchResult to the pipeline's RetrievedDocument shape.
  *
- * Because the stored Qdrant payload contains metadata only (no raw text),
- * `content` is composed from the available fields: `articleTitle` and
- * `sectionName`. Once the indexing pipeline begins storing paragraph text
- * directly in the payload, this mapper can be updated to use it directly.
+ * Prefers `payload.paragraphText` when available.
+ * Falls back to `articleTitle` + `sectionName` for legacy collections that
+ * were indexed before raw paragraph text was persisted in payload.
  */
 function mapSearchResult(result: SearchResult): RetrievedDocument {
   const payload = result.payload;
+  const paragraphText = (payload as { paragraphText?: string }).paragraphText?.trim();
   const section = payload.sectionName ? ` — ${payload.sectionName}` : '';
-  const content = `${payload.articleTitle}${section}`;
+  const content = paragraphText && paragraphText.length > 0
+    ? paragraphText
+    : `${payload.articleTitle}${section}`;
 
   return {
     id: result.id,
@@ -34,6 +36,7 @@ function mapSearchResult(result: SearchResult): RetrievedDocument {
     metadata: {
       articleTitle: payload.articleTitle,
       sectionName: payload.sectionName,
+      paragraphText: (payload as { paragraphText?: string }).paragraphText,
       paragraphPosition: payload.paragraphPosition,
       dumpVersion: payload.dumpVersion,
       embeddingModel: payload.embeddingModel,
@@ -64,6 +67,10 @@ export class NaiveRagRetrievalAdapter implements RetrievalAdapter {
 
   async execute(context: PipelineContext): Promise<PipelineContext> {
     const queryText = String(context.processedQuery ?? context.query);
+    const requestedTopK = Number(context.config.topK);
+    const topK = Number.isFinite(requestedTopK)
+      ? R.clamp(5, 10, requestedTopK)
+      : 5;
 
     // Generate embedding for the query
     const queryVector = await this.embeddingProvider.embed(queryText);
@@ -72,7 +79,7 @@ export class NaiveRagRetrievalAdapter implements RetrievalAdapter {
     const searchResults = await this.searchManager.similaritySearch(
       context.config.collectionName,
       queryVector,
-      context.config.topK,
+      topK,
       context.config.scoreThreshold,
     );
 

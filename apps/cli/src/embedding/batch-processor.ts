@@ -262,6 +262,7 @@ export class BatchProcessor {
     embeddingModel: string
   ): WikipediaPayload {
     return {
+      paragraphText: paragraph.content,
       articleTitle: paragraph.articleTitle,
       articleId: paragraph.articleId,
       sectionName: paragraph.sectionName,

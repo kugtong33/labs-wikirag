@@ -166,4 +166,22 @@ describe('NaiveRagGenerationAdapter', () => {
     expect(systemMsg).toBeDefined();
     expect(systemMsg?.content).toContain('Wikipedia');
   });
+
+  it.each([
+    'What is the capital of France?',
+    'Explain how Roman law influenced modern legal systems.',
+    'that thing about the cat that is alive and dead',
+    'How would you evaluate your own answer quality here?',
+  ])('handles query category input: %s', async (query) => {
+    const ctx = makeContext({ query, processedQuery: query }, [makeDoc(1, 'Context doc')]);
+    const result = await adapter.execute(ctx);
+
+    expect(result.response).toBe('Quantum computing uses qubits.');
+
+    const calls = (openaiClient.chat.completions.create as ReturnType<typeof vi.fn>).mock.calls;
+    const lastCall = calls[calls.length - 1];
+    const messages = lastCall[0].messages as Array<{ role: string; content: string }>;
+    const userMsg = messages.find((m) => m.role === 'user');
+    expect(userMsg?.content).toContain(query);
+  });
 });

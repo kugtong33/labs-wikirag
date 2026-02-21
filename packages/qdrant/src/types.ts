@@ -3,6 +3,9 @@
  * Stored in Qdrant payload field alongside the vector embedding
  */
 export interface WikipediaPayload {
+  /** Raw paragraph text content (optional for legacy indexed collections) */
+  paragraphText?: string;
+
   /** Wikipedia article title */
   articleTitle: string;
 
