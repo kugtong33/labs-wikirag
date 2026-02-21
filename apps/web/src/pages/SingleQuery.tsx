@@ -1,14 +1,16 @@
 /**
- * SingleQuery page — default view
+ * SingleQuery page — default view with streaming query experience
  *
- * Shows the main query input, technique selector dropdown, and a mode toggle
- * button that switches between single-query and comparison views.
+ * Wires the query input to the useStreamingQuery hook, streams the SSE
+ * response in real-time, and shows completion metadata or error messages.
  *
  * @module web/pages/SingleQuery
  */
 
 import { TechniqueSelector } from '../components/TechniqueSelector.js';
+import { StreamingResponse } from '../components/StreamingResponse.js';
 import { useQueryStore, type ViewMode } from '../stores/query-store.js';
+import { useStreamingQuery } from '../hooks/useStreamingQuery.js';
 
 interface Technique {
   name: string;
@@ -20,16 +22,26 @@ interface SingleQueryProps {
 }
 
 /**
- * Main single-query view. Houses the technique selector and mode toggle.
- * All state transitions (mode, technique, query) are client-side via Zustand.
+ * Main single-query view. Houses the technique selector, mode toggle,
+ * query textarea with submit button, and streaming response display.
  */
 export function SingleQuery({ techniques }: SingleQueryProps) {
-  const { mode, technique, setMode, setTechnique } = useQueryStore();
+  const { mode, technique, query, setMode, setTechnique, setQuery } = useQueryStore();
+  const { status, responseText, error, requestId, completedAt, submit } = useStreamingQuery();
+
+  const isSubmitting = status === 'loading' || status === 'streaming';
 
   /** Toggle between single and comparison mode */
   const toggleMode = () => {
     const next: ViewMode = mode === 'single' ? 'comparison' : 'single';
     setMode(next);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      submit(query.trim(), technique);
+    }
   };
 
   return (
@@ -58,18 +70,41 @@ export function SingleQuery({ techniques }: SingleQueryProps) {
           </button>
         </div>
 
-        {/* Query section */}
-        <section aria-label="Query">
-          <label htmlFor="query-input" className="mb-2 block text-sm font-medium text-gray-700">
-            Ask a question about Wikipedia
-          </label>
-          <textarea
-            id="query-input"
-            rows={4}
-            placeholder="e.g. Who was Albert Einstein?"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </section>
+        {/* Query form */}
+        <form onSubmit={handleSubmit}>
+          <section aria-label="Query">
+            <label htmlFor="query-input" className="mb-2 block text-sm font-medium text-gray-700">
+              Ask a question about Wikipedia
+            </label>
+            <textarea
+              id="query-input"
+              rows={4}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g. Who was Albert Einstein?"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </section>
+
+          <div className="mt-3 flex justify-end">
+            <button
+              type="submit"
+              disabled={isSubmitting || !query.trim()}
+              className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSubmitting ? 'Asking…' : 'Ask'}
+            </button>
+          </div>
+        </form>
+
+        {/* Streaming response */}
+        <StreamingResponse
+          status={status}
+          responseText={responseText}
+          error={error}
+          requestId={requestId}
+          completedAt={completedAt}
+        />
       </div>
     </main>
   );
