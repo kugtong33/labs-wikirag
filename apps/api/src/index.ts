@@ -6,11 +6,11 @@
  * @module api
  */
 
-import { registerNaiveRag } from '@wikirag/core';
+import { discoverAndRegisterTechniques } from '@wikirag/core';
 import { createApp, logger } from './server.js';
 
-// Register all RAG techniques at startup
-registerNaiveRag();
+// Discover and register all RAG techniques at startup
+await discoverAndRegisterTechniques();
 
 const port = Number(process.env.PORT ?? 3000);
 const app = createApp();

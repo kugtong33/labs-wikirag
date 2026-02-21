@@ -56,7 +56,7 @@ development_status:
   epic-1-5-retrospective: optional
 
   epic-2: backlog
-  2-1-pipeline-adapter-interfaces-and-technique-registry: review
+  2-1-pipeline-adapter-interfaces-and-technique-registry: done
   2-2-naive-rag-technique-implementation: review
   2-3-api-server-with-streaming-inquiry-endpoint: review
   2-4-pwa-shell-with-routing-and-technique-selection: review

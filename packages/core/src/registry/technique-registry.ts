@@ -22,14 +22,37 @@ export class TechniqueRegistryError extends Error {
 }
 
 /**
- * Validate that a technique composition has all required adapters.
- * Uses Ramda.allPass for declarative, composable validation.
+ * Runtime shape for adapter validation.
  */
-const hasRequiredAdapters = R.allPass([
-  R.hasIn('query'),
-  R.hasIn('retrieval'),
-  R.hasIn('generation'),
-]) as (adapters: TechniqueComposition) => boolean;
+interface AdapterLike {
+  name: string;
+  execute: (...args: unknown[]) => unknown;
+}
+
+/**
+ * Validate adapter shape at runtime to catch malformed techniques.
+ */
+const isAdapterLike = (value: unknown): value is AdapterLike => {
+  if (!R.is(Object, value)) {
+    return false;
+  }
+
+  const adapter = value as Record<string, unknown>;
+  return (
+    typeof adapter.name === 'string' &&
+    adapter.name.trim().length > 0 &&
+    typeof adapter.execute === 'function'
+  );
+};
+
+/**
+ * Validate that a technique composition has all required adapters with valid shape.
+ */
+const hasRequiredAdapters = (adapters: TechniqueComposition): boolean => R.allPass([
+  R.pipe(R.prop('query'), isAdapterLike),
+  R.pipe(R.prop('retrieval'), isAdapterLike),
+  R.pipe(R.prop('generation'), isAdapterLike),
+])(adapters);
 
 /**
  * Registry that stores RAG techniques and resolves them by name.
@@ -62,6 +85,10 @@ export class TechniqueRegistry {
       throw new TechniqueRegistryError('Technique name cannot be empty');
     }
 
+    if (!technique.description || technique.description.trim() === '') {
+      throw new TechniqueRegistryError('Technique description cannot be empty');
+    }
+
     if (this.techniques.has(technique.name)) {
       throw new TechniqueRegistryError(
         `Technique "${technique.name}" is already registered`
@@ -70,7 +97,7 @@ export class TechniqueRegistry {
 
     if (!hasRequiredAdapters(technique.adapters)) {
       throw new TechniqueRegistryError(
-        `Technique "${technique.name}" is missing required adapters (query, retrieval, generation)`
+        `Technique "${technique.name}" is missing required adapters (query, retrieval, generation) or adapter shape is invalid`
       );
     }
 

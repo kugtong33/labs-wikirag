@@ -71,6 +71,16 @@ describe('TechniqueRegistry', () => {
       ).toThrow(TechniqueRegistryError);
     });
 
+    it('throws TechniqueRegistryError when description is empty', () => {
+      expect(() =>
+        registry.register({
+          name: 'naive-rag',
+          description: '',
+          adapters: stubComposition,
+        })
+      ).toThrow(TechniqueRegistryError);
+    });
+
     it('throws TechniqueRegistryError when required adapters are missing', () => {
       const incomplete = {
         name: 'missing-adapters',
@@ -90,6 +100,20 @@ describe('TechniqueRegistry', () => {
         adapters: { query: stubComposition.query } as unknown as TechniqueComposition,
       };
       expect(() => registry.register(incomplete)).toThrow(/required adapters/);
+    });
+
+    it('throws when required adapter shape is invalid at runtime', () => {
+      const invalid = {
+        name: 'bad-shape',
+        description: 'invalid adapter runtime shape',
+        adapters: {
+          query: { name: 'query', execute: noopExec },
+          retrieval: { name: 'retrieval' },
+          generation: { name: 'generation', execute: noopExec },
+        } as unknown as TechniqueComposition,
+      };
+
+      expect(() => registry.register(invalid)).toThrow(/adapter shape is invalid/);
     });
 
     it('accepts optional preRetrieval and postRetrieval adapters', () => {

@@ -38,6 +38,7 @@ export {
 export {
   createNaiveRagTechnique,
   registerNaiveRag,
+  registerTechnique as registerNaiveRagTechnique,
   PassthroughQueryAdapter,
   NaiveRagRetrievalAdapter,
   NaiveRagGenerationAdapter,
@@ -45,3 +46,12 @@ export {
   NAIVE_RAG_NAME,
 } from './techniques/naive-rag/index.js';
 export type { NaiveRagConfig } from './techniques/naive-rag/index.js';
+
+// Technique discovery
+export {
+  discoverAndRegisterTechniques,
+} from './techniques/discovery.js';
+export type {
+  DiscoverTechniquesOptions,
+  TechniqueDiscoveryResult,
+} from './techniques/discovery.js';

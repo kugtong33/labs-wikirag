@@ -95,6 +95,17 @@ export { NaiveRagGenerationAdapter, DEFAULT_GENERATION_MODEL } from './generatio
  * @param config - Optional configuration overrides
  */
 export function registerNaiveRag(config: NaiveRagConfig = {}): void {
+  if (techniqueRegistry.has(NAIVE_RAG_NAME)) {
+    return;
+  }
+
   const technique = createNaiveRagTechnique(config);
   techniqueRegistry.register(technique);
 }
+
+/**
+ * Standardized discovery entrypoint.
+ *
+ * Technique discovery calls this export automatically when present.
+ */
+export const registerTechnique = registerNaiveRag;

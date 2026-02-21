@@ -1,6 +1,6 @@
 # Story 2.1: Pipeline Adapter Interfaces and Technique Registry
 
-Status: review
+Status: done
 
 ## Story
 
@@ -54,6 +54,10 @@ So that new RAG techniques can be added by implementing adapters without modifyi
   - [x] 6.3 Test technique listing
   - [x] 6.4 Test error cases (duplicate registration, not found)
   - [x] 6.5 Run pnpm test (all tests pass)
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][Low] Standardize story file-list traceability by recording implementation commit hashes per file entry to avoid future git working-tree mismatch during reviews [_bmad-output/implementation-artifacts/2-1-pipeline-adapter-interfaces-and-technique-registry.md:284]
 
 ## Dev Notes
 
@@ -274,10 +278,13 @@ No issues. The `packages/core` package skeleton (package.json, tsconfig.json, em
 - Validation via `R.allPass` ensures required adapters (query, retrieval, generation) are present at registration time
 - `techniqueRegistry` singleton exported for runtime use; `TechniqueRegistry` class exported for test isolation
 - 20 tests: registration (7), get (3), has (2), list (3), clear (2), singleton (2)
+- Senior review fixes applied: startup now auto-discovers technique modules, registration is idempotent for startup retries, runtime adapter-shape validation was tightened, and discovery coverage was added to tests.
+- Historical implementation file list was validated against commit `1a12730` (Story 2.1 implementation commit).
 
 ### Change Log
 
 2026-02-21: Story implemented by claude-sonnet-4-6
+2026-02-22: Senior AI review fixes applied - implemented startup auto-discovery for technique modules, strengthened runtime registry validation, made registration idempotent, and added discovery/validation tests.
 
 ### File List
 
@@ -295,3 +302,26 @@ No issues. The `packages/core` package skeleton (package.json, tsconfig.json, em
 - `packages/core/src/registry/technique-registry.ts` — NEW: TechniqueRegistry, TechniqueRegistryError, techniqueRegistry singleton
 - `packages/core/src/techniques/.gitkeep` — NEW: placeholder for future technique implementations
 - `packages/core/tests/registry/technique-registry.test.ts` — NEW: 20 tests
+- `packages/core/src/techniques/discovery.ts` — NEW (review fix): startup technique-module discovery and auto-registration
+- `packages/core/src/techniques/naive-rag/index.ts` — MODIFIED (review fix): idempotent registration + standardized `registerTechnique` export for discovery
+- `packages/core/src/registry/technique-registry.ts` — MODIFIED (review fix): runtime adapter-shape and description validation hardening
+- `packages/core/src/index.ts` — MODIFIED (review fix): exports technique discovery API
+- `packages/core/tests/registry/technique-registry.test.ts` — MODIFIED (review fix): added runtime-shape/description validation tests
+- `packages/core/tests/techniques/discovery.test.ts` — NEW (review fix): discovery behavior tests
+- `apps/api/src/index.ts` — MODIFIED (review fix): startup now calls `discoverAndRegisterTechniques()`
+- `_bmad-output/implementation-artifacts/2-1-pipeline-adapter-interfaces-and-technique-registry.md` — MODIFIED during code review
+
+### Senior Developer Review (AI)
+
+- Reviewer: kugtong33
+- Date: 2026-02-22
+- Outcome: Changes Requested -> Fixed (High/Medium); one Low follow-up recorded
+- Validation summary:
+  - AC2/AC3 gap fixed by implementing startup auto-discovery from `packages/core/src/techniques/<name>/index.*` and wiring API startup to use it
+  - Registry robustness improved with runtime adapter-shape validation and non-empty description enforcement
+  - Startup safety improved via idempotent naive-rag registration behavior
+  - Test coverage expanded for discovery behavior and registry runtime validation paths
+- Targeted verification performed:
+  - `pnpm --filter @wikirag/core test -- --run` (pass)
+  - `pnpm --filter @wikirag/core build && pnpm --filter @wikirag/api build` (pass)
+  - `pnpm --filter @wikirag/api test -- --run` (pass)
