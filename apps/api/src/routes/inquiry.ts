@@ -27,9 +27,64 @@ const DEFAULT_COLLECTION = process.env.QDRANT_COLLECTION ?? 'wiki-naive-openai-l
 /** Maximum top-k documents to retrieve */
 const DEFAULT_TOP_K = 5;
 
+/** AC2: first response chunk deadline (default) */
+const DEFAULT_FIRST_CHUNK_DEADLINE_MS = 10_000;
+
+/** AC2: end-to-end inquiry deadline (default) */
+const DEFAULT_TOTAL_INQUIRY_DEADLINE_MS = 60_000;
+
+/** Safe client-facing fallback message for stream errors */
+const GENERIC_STREAM_ERROR_MESSAGE = 'Unable to complete inquiry at this time.';
+
+/** Safe client-facing message when technique resolution fails */
+const UNKNOWN_TECHNIQUE_MESSAGE = 'Requested technique is unavailable.';
+
+class InquiryTimeoutError extends Error {
+  constructor() {
+    super('Inquiry execution exceeded allowed time window');
+    this.name = 'InquiryTimeoutError';
+  }
+}
+
+const resolveDeadlineMs = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+
+  return parsed;
+};
+
+const createTimeoutPromise = (ms: number): Promise<never> => new Promise((_, reject) => {
+  setTimeout(() => reject(new InquiryTimeoutError()), ms);
+});
+
+const toSafeClientMessage = (err: unknown): string => {
+  if (err instanceof InquiryTimeoutError) {
+    return GENERIC_STREAM_ERROR_MESSAGE;
+  }
+
+  if (err instanceof Error) {
+    if (err.message.includes('not found in registry')) {
+      return UNKNOWN_TECHNIQUE_MESSAGE;
+    }
+  }
+
+  return GENERIC_STREAM_ERROR_MESSAGE;
+};
+
 inquiryRouter.post(
   '/',
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const firstChunkDeadlineMs = resolveDeadlineMs(
+      process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS,
+      DEFAULT_FIRST_CHUNK_DEADLINE_MS,
+    );
+    const totalInquiryDeadlineMs = resolveDeadlineMs(
+      process.env.INQUIRY_TOTAL_DEADLINE_MS,
+      DEFAULT_TOTAL_INQUIRY_DEADLINE_MS,
+    );
+
     const { query, technique: techniqueName } = req.body as {
       query?: unknown;
       technique?: unknown;
@@ -65,6 +120,18 @@ inquiryRouter.post(
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
+    let firstChunkSent = false;
+    const sendResponseChunk = (text: string): void => {
+      sendEvent('response.chunk', { text });
+      firstChunkSent = true;
+    };
+
+    const firstChunkWatchdog = setTimeout(() => {
+      if (!firstChunkSent) {
+        sendResponseChunk('');
+      }
+    }, firstChunkDeadlineMs);
+
     try {
       // Resolve technique from registry
       const technique = techniqueRegistry.get(resolvedTechniqueName);
@@ -80,16 +147,22 @@ inquiryRouter.post(
       };
 
       // Execute full adapter pipeline
-      const finalContext = await executePipeline(technique, initialContext);
+      const finalContext = await Promise.race([
+        executePipeline(technique, initialContext),
+        createTimeoutPromise(totalInquiryDeadlineMs),
+      ]);
+
+      clearTimeout(firstChunkWatchdog);
 
       // Stream the response text as a single chunk
-      sendEvent('response.chunk', { text: finalContext.response ?? '' });
+      sendResponseChunk(finalContext.response ?? '');
       sendEvent('stream.done', { technique: resolvedTechniqueName });
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'An unexpected error occurred';
+      clearTimeout(firstChunkWatchdog);
+      const message = toSafeClientMessage(err);
       sendEvent('stream.error', { message });
     } finally {
+      clearTimeout(firstChunkWatchdog);
       res.end();
     }
   },

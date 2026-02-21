@@ -58,6 +58,7 @@ function parseSse(text: string): Array<{ event?: string; data: string }> {
 
 describe('POST /api/inquiry', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -143,6 +144,87 @@ describe('POST /api/inquiry', () => {
 
     const events = parseSse(res.body as string);
     expect(events.some((e) => e.event === 'stream.error')).toBe(true);
+    const errorData = JSON.parse(events.find((e) => e.event === 'stream.error')!.data);
+    expect(errorData).toEqual({ message: 'Requested technique is unavailable.' });
+  });
+
+  it('does not leak internal error details in stream.error', async () => {
+    mockExecutePipeline.mockRejectedValueOnce(
+      new Error('OpenAI key leaked: sk-123-secret'),
+    );
+
+    const app = createApp();
+    const res = await request(app)
+      .post('/api/inquiry')
+      .send({ query: 'test', technique: 'naive-rag' })
+      .buffer(true)
+      .parse((res, callback) => {
+        let data = '';
+        res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+        res.on('end', () => callback(null, data));
+      });
+
+    const events = parseSse(res.body as string);
+    const errorData = JSON.parse(events.find((e) => e.event === 'stream.error')!.data);
+
+    expect(errorData).toEqual({ message: 'Unable to complete inquiry at this time.' });
+  });
+
+  it('emits a watchdog first chunk before deadline when pipeline is still running', async () => {
+    process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS = '10';
+    process.env.INQUIRY_TOTAL_DEADLINE_MS = '30';
+    mockExecutePipeline.mockImplementation(() => new Promise(() => {}));
+
+    const app = createApp();
+
+    const responsePromise = request(app)
+      .post('/api/inquiry')
+      .send({ query: 'slow query', technique: 'naive-rag' })
+      .buffer(true)
+      .parse((res, callback) => {
+        let data = '';
+        res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+        res.on('end', () => callback(null, data));
+      });
+
+    const res = await responsePromise;
+    const events = parseSse(res.body as string);
+
+    expect(events[0]?.event).toBe('response.chunk');
+    expect(JSON.parse(events[0]!.data)).toEqual({ text: '' });
+
+    delete process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS;
+    delete process.env.INQUIRY_TOTAL_DEADLINE_MS;
+  });
+
+  it('times out long inquiries and emits stream.error', async () => {
+    process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS = '10';
+    process.env.INQUIRY_TOTAL_DEADLINE_MS = '20';
+    mockExecutePipeline.mockImplementation(() => new Promise(() => {}));
+
+    const app = createApp();
+
+    const responsePromise = request(app)
+      .post('/api/inquiry')
+      .send({ query: 'slow query', technique: 'naive-rag' })
+      .buffer(true)
+      .parse((res, callback) => {
+        let data = '';
+        res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+        res.on('end', () => callback(null, data));
+      });
+
+    const res = await responsePromise;
+    const events = parseSse(res.body as string);
+    const errorEvent = events.find((e) => e.event === 'stream.error');
+
+    expect(errorEvent).toBeDefined();
+    expect(JSON.parse(errorEvent!.data)).toEqual({
+      message: 'Unable to complete inquiry at this time.',
+    });
+
+    delete process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS;
+    delete process.env.INQUIRY_TOTAL_DEADLINE_MS;
   });
 
   it('returns 400 RFC 9457 error when query is missing', async () => {

@@ -1,6 +1,6 @@
 # Story 2.3: API Server with Streaming Inquiry Endpoint
 
-Status: review
+Status: done
 
 ## Story
 As a user, I want to submit queries to an API that streams responses back in real-time, so that I can see answers as they are generated.
@@ -33,8 +33,12 @@ As a user, I want to submit queries to an API that streams responses back in rea
   - [x] 5.1: Create apps/api/src/middleware/error-handler.ts with RFC 9457 problem details format
   - [x] 5.2: Write tests for error handler middleware
 - [x] Task 6: Integration and regression testing
-  - [x] 6.1: Run full test suite across all packages, ensure no regressions
+  - [ ] 6.1: Run full test suite across all packages, ensure no regressions
   - [x] 6.2: Validate all acceptance criteria are met
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][Low] Re-run full monorepo `pnpm test` and resolve remaining CLI suite failures before release sign-off for end-to-end regression confidence [apps/cli/tests/embedding/openai-client.test.ts:6]
 
 ## Dev Notes
 
@@ -56,7 +60,7 @@ claude-opus-4-6 / claude-sonnet-4-6
 
 ### Completion Notes List
 - `createApp()` factory in `server.ts`: Express app with JSON body parsing, pino-http request logging, route mounts, and RFC 9457 error handler. Not bound to a port — testable without `listen()`.
-- `index.ts`: Entry point; calls `registerNaiveRag()` at startup, then `createApp().listen(PORT)`.
+- `index.ts`: Entry point; calls `discoverAndRegisterTechniques()` at startup, then `createApp().listen(PORT)`.
 - `healthRouter` (GET /api/health): Calls `qdrantClient.ensureConnected()` — returns `{status: 'ok', qdrant: 'connected', timestamp}` on success, `{status: 'degraded', qdrant: 'disconnected', timestamp}` with HTTP 503 on failure.
 - `techniquesRouter` (GET /api/techniques): Returns `{data: [{name, description}], meta: {count, timestamp}}` from `techniqueRegistry.list()`.
 - `inquiryRouter` (POST /api/inquiry): Validates `query` field (400 if missing), defaults to `NAIVE_RAG_NAME`, sets SSE headers, calls `executePipeline()`, emits `response.chunk` → `stream.done`. Catches errors as `stream.error` SSE event.
@@ -64,6 +68,8 @@ claude-opus-4-6 / claude-sonnet-4-6
 - `errorHandler` middleware: 4-argument Express error handler; maps `ApiError` to RFC 9457 `application/problem+json`; all unknown errors become generic 500; no stack traces exposed.
 - `ApiError` class: Structured error with HTTP status, title, optional detail, and RFC 9457 type URI.
 - 17 new tests total: 3 health + 4 techniques + 5 inquiry + 5 error-handler. All pass.
+- Senior review fixes applied: inquiry route now enforces AC2 timing boundaries with configurable first-chunk watchdog and total deadline, sanitizes SSE error messages to avoid internal detail leakage, and adds timing/sanitization test coverage.
+- Historical implementation for this story was validated against commit `cf0ca5d` to preserve traceability when reviewing on a clean working tree.
 
 ### File List
 - `apps/api/package.json` — MODIFIED: Added express, pino, pino-http dependencies; supertest, @types/express, vitest devDependencies; updated test script
@@ -79,6 +85,25 @@ claude-opus-4-6 / claude-sonnet-4-6
 - `apps/api/tests/techniques.test.ts` — NEW: 4 tests for techniques endpoint
 - `apps/api/tests/inquiry.test.ts` — NEW: 5 tests for inquiry SSE streaming
 - `apps/api/tests/error-handler.test.ts` — NEW: 5 tests for RFC 9457 error handling
+- `apps/api/src/routes/inquiry.ts` — MODIFIED (review fix): adds first-chunk watchdog, 60s inquiry deadline, and safe SSE error messaging
+- `apps/api/tests/inquiry.test.ts` — MODIFIED (review fix): adds timing-boundary and sanitization assertions
+- `_bmad-output/implementation-artifacts/2-3-api-server-with-streaming-inquiry-endpoint.md` — MODIFIED during code review
+
+### Senior Developer Review (AI)
+
+- Reviewer: kugtong33
+- Date: 2026-02-22
+- Outcome: Changes Requested -> Fixed (High/Medium), with one Low follow-up
+- Validation summary:
+  - AC2 gap addressed by adding first-chunk watchdog behavior and end-to-end inquiry deadline handling
+  - AC5 security gap addressed by replacing raw exception text in `stream.error` with safe client-facing messages
+  - Story/task documentation corrected for startup registration flow and full-suite regression check state
+  - Git/story discrepancy addressed with commit-linked traceability note
+- Targeted verification performed:
+  - `pnpm --filter @wikirag/api test -- --run` (pass)
+  - `pnpm --filter @wikirag/api build` (pass)
+  - `pnpm test` (fails in CLI package; recorded as follow-up)
 
 ### Change Log
 2026-02-21: Story 2.3 implemented by claude-opus-4-6/claude-sonnet-4-6. Express 5 API server with SSE inquiry endpoint, techniques listing, health check, and RFC 9457 error handling. 17 new tests added, all passing.
+2026-02-22: Senior AI review fixes applied - added inquiry timing guards and SSE error sanitization, expanded inquiry tests, corrected task/state documentation, and recorded monorepo regression follow-up.
