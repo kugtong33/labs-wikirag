@@ -1,6 +1,6 @@
 # Story 1.6: Bz2 Multistream Decompression and Format Auto-Detection
 
-Status: review
+Status: done
 
 ## Story
 
@@ -45,10 +45,10 @@ so that I can index directly from the downloaded dump file without manual decomp
 - [x] Task 4: Implement parallel multistream decompression (AC: 2)
   - [x] 4.1 Created `apps/cli/src/parser/parallel-stream-reader.ts`
   - [x] 4.2 `parseBlock()` — reads byte range via `fs.createReadStream({ start, end })`, pipes through `unbzip2-stream`, parses XML
-  - [x] 4.3 Implemented `readMultistreamParallel()` — batches blocks by concurrency, yields in block order
-  - [x] 4.4 Concurrency via `Promise.all` on batches — no semaphore library needed
+  - [x] 4.3 Implemented `readMultistreamParallel()` with rolling in-flight concurrency window and deterministic block-order output
+  - [x] 4.4 Concurrency uses per-block workers (no batch barrier), launching next block as soon as prior block starts yielding
   - [x] 4.5 Each parallel worker: decompress block → `streamXmlPages` → `parseSections` → `extractParagraphsFromSection`
-  - [x] 4.6 Paragraphs yielded in block order via sequential `yield* blockParagraphs` after batch completes
+  - [x] 4.6 Paragraphs yielded in block order while downstream can progress without waiting for whole `Promise.all` batches
 
 - [x] Task 5: Add `--streams` CLI flag and wire multistream pipeline (AC: 2)
   - [x] 5.1 Added `--streams <count>` to `index-command.ts` (default: 1)
@@ -61,7 +61,7 @@ so that I can index directly from the downloaded dump file without manual decomp
 - [x] Task 6: Extend checkpoint for multistream block tracking (AC: 4)
   - [x] 6.1 Added `completedBlockOffsets?: number[]` to `CheckpointData` interface in `checkpoint.ts`
   - [x] 6.2 `saveCheckpoint`/`loadCheckpoint` handle field automatically (JSON serialization; field is optional)
-  - [x] 6.3 `trackMultistreamProgress()` in `index-runner.ts` records completed block offsets per checkpoint interval
+  - [x] 6.3 `readMultistreamParallel(..., onBlockComplete)` callback records completed block offsets independent of paragraph yield count
   - [x] 6.4 Resume logic filters completed blocks: `blocks.filter(b => !completedOffsets.includes(b.byteOffset))`
   - [x] 6.5 SIGINT handler calls `persistCheckpointProgress()` which saves `completedBlockOffsets` via `state.checkpoint`
   - [x] 6.6 Written 4 new tests in `tests/cli/checkpoint.test.ts` for `completedBlockOffsets`
@@ -72,8 +72,14 @@ so that I can index directly from the downloaded dump file without manual decomp
   - [x] 7.3 `bz2-stream.test.ts` verifies single-stream decompression produces identical XML content
   - [x] 7.4 `multistream-index.test.ts` verifies block grouping and offset ranges
   - [x] 7.5 Checkpoint tests verify block offsets survive save/load cycle (backward compatible)
-  - [x] 7.6 `pnpm --filter @wikirag/cli test` — all new tests pass (41 new tests across 4 new test files)
+  - [ ] 7.6 `pnpm --filter @wikirag/cli test` — full CLI suite still has pre-existing embedding test failures; story-scoped parser/CLI tests pass
   - [x] 7.7 `pnpm build` — TypeScript build succeeds with zero errors
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][Low] Migrate legacy `openai-client.test.ts` import usage to current provider architecture to remove missing-module failure [apps/cli/tests/embedding/openai-client.test.ts:6]
+- [ ] [AI-Review][Low] Update `batch-processor` test fixtures to provider-based `embedBatch` contract to resolve stale mock failures [apps/cli/tests/embedding/batch-processor.test.ts:46]
+- [ ] [AI-Review][Low] Isolate pipeline tests from live OpenAI calls via provider mocking to remove `401` test-env instability [apps/cli/tests/embedding/pipeline.test.ts:113]
 
 ## Dev Notes
 
@@ -297,17 +303,14 @@ async function* readMultistreamParallel(
   blocks: StreamBlockRange[],
   concurrency: number
 ): AsyncGenerator<WikipediaParagraph> {
-  // Process blocks in batches of `concurrency` size
-  for (let i = 0; i < blocks.length; i += concurrency) {
-    const batch = blocks.slice(i, i + concurrency);
-    // Decompress all blocks in batch concurrently
-    const results = await Promise.all(
-      batch.map(block => decompressAndParseBlock(filePath, block))
-    );
-    // Yield paragraphs in block order
-    for (const paragraphs of results) {
-      yield* paragraphs;
-    }
+  // Keep up to `concurrency` in-flight block workers.
+  // Launch the next block as soon as the current block starts yielding.
+  const inFlight = new Map<number, Promise<WikipediaParagraph[]>>();
+  // ...launch initial window...
+  // ...await next block in order, launch replacement worker, then yield...
+
+  // Deterministic output order is preserved by block index.
+  // No whole-batch barrier is required.
   }
 }
 ```
@@ -351,8 +354,10 @@ claude-opus-4-6
 - `unbzip2-stream` is a CJS module; imported via `createRequire(import.meta.url)` pattern for ESM/CJS interop
 - No `@types/unbzip2-stream` package exists on npm; used inline type cast instead
 - Sequential bz2 mode (single-stream) works transparently — `streamXmlPages` detects bz2 via `createDumpStream` and the existing XML parse logic is unchanged
-- Multistream parallel mode: blocks processed in batches of `concurrency` with `Promise.all`; paragraphs yielded in block order for deterministic output
+- Multistream parallel mode: rolling in-flight block window keeps `concurrency` workers active; next block launches as prior block begins yielding, preserving deterministic block-order output without whole-batch barriers
 - `completedBlockOffsets` checkpoint field is fully backward compatible — legacy checkpoints load cleanly with field as `undefined`
+- Block completion is now checkpointed via explicit per-block completion callback, so even zero-paragraph blocks are tracked and skipped correctly on resume
+- Added direct unit coverage for `parallel-stream-reader` including zero-paragraph block completion and non-batch-barrier yielding behavior
 - Pre-existing test failures in `batch-processor.test.ts` and `pipeline.test.ts` are unrelated to this story (stale API mocks, missing OpenAI key in test env)
 
 ### File List
@@ -365,6 +370,7 @@ claude-opus-4-6
 - `apps/cli/tests/parser/bz2-stream.test.ts`
 - `apps/cli/tests/parser/format-detector.test.ts`
 - `apps/cli/tests/parser/multistream-index.test.ts`
+- `apps/cli/tests/parser/parallel-stream-reader.test.ts`
 - `apps/cli/tests/parser/fixtures/simple-article.xml.bz2`
 - `apps/cli/tests/parser/fixtures/multistream-index.txt`
 
@@ -372,7 +378,30 @@ claude-opus-4-6
 - `apps/cli/src/parser/xml-stream.ts` — accept `string | NodeJS.ReadableStream` input
 - `apps/cli/src/parser/index.ts` — export new modules
 - `apps/cli/src/cli/commands/index-command.ts` — `--streams`, `--index-file` flags + validation
-- `apps/cli/src/cli/commands/index-runner.ts` — multistream pipeline branch + `trackMultistreamProgress()`
+- `apps/cli/src/cli/commands/index-runner.ts` — multistream pipeline branch + callback-based completed-block checkpoint tracking
 - `apps/cli/src/cli/checkpoint.ts` — `completedBlockOffsets?: number[]` field
 - `apps/cli/tests/cli/checkpoint.test.ts` — 4 new tests for `completedBlockOffsets`
 - `apps/cli/package.json` — `unbzip2-stream ^1.4.3` dependency
+- `_bmad-output/implementation-artifacts/1-6-bz2-multistream-decompression-and-format-auto-detection.md` — review updates
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — review status sync
+- `pnpm-lock.yaml` — changed in implementation commit `bcd042b` (traceability note)
+
+### Senior Developer Review (AI)
+
+- Reviewer: kugtong33
+- Date: 2026-02-22
+- Outcome: Changes Requested -> Fixed (High/Medium), with low-severity follow-ups retained
+- Validation summary:
+  - AC2 strengthened by removing batch barriers in `readMultistreamParallel` and maintaining rolling in-flight block processing
+  - AC4 strengthened by recording completed block offsets via explicit block completion callback (including zero-paragraph blocks)
+  - CLI validation hardened to reject non-finite `--batch-size` and `--streams` values
+  - Added dedicated `parallel-stream-reader` tests for callback/block-completion behavior and no-batch-barrier yielding
+  - Story/task traceability corrected (full-suite test claim adjusted; missing file-list entries documented)
+- Targeted verification performed:
+  - `pnpm --filter @wikirag/cli exec vitest tests/parser/parallel-stream-reader.test.ts tests/cli/index-command.test.ts tests/parser/bz2-stream.test.ts tests/parser/format-detector.test.ts tests/parser/multistream-index.test.ts --run` (pass)
+  - `pnpm --filter @wikirag/cli build` (pass)
+  - `pnpm --filter @wikirag/cli test -- --run` (fails in pre-existing embedding suites; tracked in follow-ups)
+
+### Change Log
+
+- 2026-02-22: Senior AI adversarial review fixes — rolling in-flight multistream scheduling, callback-based completed-block checkpointing (including zero-paragraph blocks), NaN-safe CLI numeric validation, new `parallel-stream-reader` tests, and story traceability/task-state corrections.

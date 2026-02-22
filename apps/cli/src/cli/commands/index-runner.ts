@@ -284,12 +284,26 @@ async function runIndexingPipeline(
 
     console.log(`⚡ Multistream mode: ${blocks.length} blocks, ${streams} parallel streams`);
 
-    paragraphs = readMultistreamParallel(options.dumpFile, blocks, streams);
+    paragraphs = readMultistreamParallel(
+      options.dumpFile,
+      blocks,
+      streams,
+      {},
+      async (block) => {
+        if (!state.checkpoint.completedBlockOffsets) {
+          state.checkpoint.completedBlockOffsets = [];
+        }
 
-    // Wrap to track block completion for checkpoint
+        if (!state.checkpoint.completedBlockOffsets.includes(block.byteOffset)) {
+          state.checkpoint.completedBlockOffsets.push(block.byteOffset);
+          await persistCheckpointProgress(state, checkpointFile, true);
+        }
+      },
+    );
+
+    // Wrap paragraph stream to track article-level progress checkpoints
     const filteredParagraphs = trackMultistreamProgress(
       paragraphs,
-      blocks,
       state,
       checkpointFile
     );
@@ -347,56 +361,19 @@ async function runIndexingPipeline(
 }
 
 /**
- * Track multistream block completion for checkpointing.
- * Yields paragraphs unchanged while recording completed block offsets.
+ * Track article progress for multistream mode.
+ * Block completion is handled via readMultistreamParallel callback.
  */
 async function* trackMultistreamProgress(
   paragraphs: AsyncIterable<WikipediaParagraph>,
-  blocks: import('../../parser/multistream-index.js').StreamBlockRange[],
   state: IndexingState,
   checkpointFile: string
 ): AsyncGenerator<WikipediaParagraph> {
-  // Build a map of articleId -> block byteOffset for tracking completion
-  const articleToBlock = new Map<string, number>();
-  for (const block of blocks) {
-    for (const articleId of block.articleIds) {
-      articleToBlock.set(articleId, block.byteOffset);
-    }
-  }
-
-  let lastBlockOffset: number | null = null;
-
   for await (const paragraph of paragraphs) {
     if (state.isShuttingDown) break;
 
-    const blockOffset = articleToBlock.get(paragraph.articleId);
-
-    // When we transition to a new block, record the previous block as completed
-    if (blockOffset !== undefined && blockOffset !== lastBlockOffset) {
-      if (lastBlockOffset !== null) {
-        if (!state.checkpoint.completedBlockOffsets) {
-          state.checkpoint.completedBlockOffsets = [];
-        }
-        if (!state.checkpoint.completedBlockOffsets.includes(lastBlockOffset)) {
-          state.checkpoint.completedBlockOffsets.push(lastBlockOffset);
-          await persistCheckpointProgress(state, checkpointFile, true);
-        }
-      }
-      lastBlockOffset = blockOffset;
-    }
-
     await handleProgress(paragraph, state, checkpointFile);
     yield paragraph;
-  }
-
-  // Record final block as completed
-  if (lastBlockOffset !== null) {
-    if (!state.checkpoint.completedBlockOffsets) {
-      state.checkpoint.completedBlockOffsets = [];
-    }
-    if (!state.checkpoint.completedBlockOffsets.includes(lastBlockOffset)) {
-      state.checkpoint.completedBlockOffsets.push(lastBlockOffset);
-    }
   }
 }
 

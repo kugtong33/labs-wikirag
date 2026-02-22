@@ -16,6 +16,8 @@ import type { WikipediaParagraph, ParserOptions } from './types.js';
 import type { StreamBlockRange } from './multistream-index.js';
 import { WikipediaParserError } from './errors.js';
 
+type BlockCompleteCallback = (block: StreamBlockRange) => Promise<void> | void;
+
 const DEFAULT_OPTIONS: Required<ParserOptions> = {
   skipRedirects: true,
   minParagraphLength: 10,
@@ -84,7 +86,8 @@ export async function* readMultistreamParallel(
   dumpFilePath: string,
   blocks: StreamBlockRange[],
   concurrency: number = 1,
-  options: ParserOptions = {}
+  options: ParserOptions = {},
+  onBlockComplete?: BlockCompleteCallback,
 ): AsyncGenerator<WikipediaParagraph, void, unknown> {
   if (R.isEmpty(blocks)) return;
 
@@ -92,19 +95,38 @@ export async function* readMultistreamParallel(
   const safeConcurrency = Math.max(1, concurrency);
 
   try {
-    // Process blocks in batches to bound memory usage
-    for (let i = 0; i < blocks.length; i += safeConcurrency) {
-      const batch = blocks.slice(i, i + safeConcurrency);
+    // Launch up to N workers and keep a rolling in-flight window.
+    // This removes batch barriers while preserving deterministic block-order output.
+    const inFlight = new Map<number, Promise<WikipediaParagraph[]>>();
 
-      // Decompress and parse all blocks in this batch concurrently
-      const results = await Promise.all(
-        batch.map((block) => parseBlock(dumpFilePath, block, opts))
-      );
+    const initialLaunches = Math.min(safeConcurrency, blocks.length);
+    for (let index = 0; index < initialLaunches; index += 1) {
+      inFlight.set(index, parseBlock(dumpFilePath, blocks[index], opts));
+    }
 
-      // Yield paragraphs in block order (maintain determinism)
-      for (const blockParagraphs of results) {
-        yield* blockParagraphs;
+    for (let yieldIndex = 0; yieldIndex < blocks.length; yieldIndex += 1) {
+      const blockParagraphs = await inFlight.get(yieldIndex);
+      if (!blockParagraphs) {
+        throw new WikipediaParserError(
+          `Missing in-flight result for block index ${yieldIndex}`,
+          'readMultistreamParallel',
+        );
       }
+
+      if (onBlockComplete) {
+        await onBlockComplete(blocks[yieldIndex]);
+      }
+
+      const nextLaunch = yieldIndex + safeConcurrency;
+      if (nextLaunch < blocks.length) {
+        inFlight.set(
+          nextLaunch,
+          parseBlock(dumpFilePath, blocks[nextLaunch], opts),
+        );
+      }
+
+      yield* blockParagraphs;
+      inFlight.delete(yieldIndex);
     }
   } catch (error) {
     if (error instanceof WikipediaParserError) throw error;

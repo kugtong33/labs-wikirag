@@ -132,6 +132,10 @@ export function validateOptions(options: IndexCommandOptions): void {
 
   // Validate batch size
   if (options.batchSize !== undefined) {
+    if (!Number.isFinite(options.batchSize)) {
+      throw new Error(`Invalid batch size: ${options.batchSize}. Must be a finite number`);
+    }
+
     if (options.batchSize < 1 || options.batchSize > 2048) {
       throw new Error(
         `Invalid batch size: ${options.batchSize}. Must be between 1 and 2048`
@@ -155,6 +159,10 @@ export function validateOptions(options: IndexCommandOptions): void {
 
   // Validate streams count
   if (options.streams !== undefined) {
+    if (!Number.isFinite(options.streams)) {
+      throw new Error(`Invalid streams count: ${options.streams}. Must be a finite number`);
+    }
+
     if (options.streams < 1) {
       throw new Error(`Invalid streams count: ${options.streams}. Must be at least 1`);
     }

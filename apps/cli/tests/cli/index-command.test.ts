@@ -123,5 +123,28 @@ describe('Index Command', () => {
       expect(isValidBatchSize(2049)).toBe(false);
       expect(isValidBatchSize(-1)).toBe(false);
     });
+
+    it('should reject non-finite batch size values', () => {
+      expect(() =>
+        validateOptions({
+          dumpFile: 'dump.xml',
+          strategy: 'paragraph',
+          dumpDate: '20260210',
+          batchSize: Number.NaN,
+        }),
+      ).toThrow(/Invalid batch size/);
+    });
+
+    it('should reject non-finite streams values', () => {
+      expect(() =>
+        validateOptions({
+          dumpFile: 'dump.xml.bz2',
+          strategy: 'paragraph',
+          dumpDate: '20260210',
+          streams: Number.NaN,
+          indexFile: 'dump-index.txt',
+        }),
+      ).toThrow(/Invalid streams count/);
+    });
   });
 });
