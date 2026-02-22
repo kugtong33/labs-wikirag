@@ -17,6 +17,74 @@ import * as R from 'ramda';
 import { createBz2ReadStream } from './bz2-stream.js';
 import { WikipediaParserError } from './errors.js';
 
+type IndexChunk = string | Buffer;
+
+/**
+ * Iterate readable streams that may not implement Symbol.asyncIterator
+ * (e.g. some CJS transform streams such as unbzip2-stream).
+ */
+async function* readChunks(stream: NodeJS.ReadableStream): AsyncGenerator<IndexChunk> {
+  const asyncIterable = stream as NodeJS.ReadableStream & AsyncIterable<IndexChunk>;
+  if (typeof asyncIterable[Symbol.asyncIterator] === 'function') {
+    yield* asyncIterable;
+    return;
+  }
+
+  const queue: IndexChunk[] = [];
+  let ended = false;
+  let streamError: Error | undefined;
+  let notify: (() => void) | undefined;
+
+  const wake = (): void => {
+    if (notify) {
+      const callback = notify;
+      notify = undefined;
+      callback();
+    }
+  };
+
+  const onData = (chunk: IndexChunk): void => {
+    queue.push(chunk);
+    wake();
+  };
+
+  const onEnd = (): void => {
+    ended = true;
+    wake();
+  };
+
+  const onError = (err: unknown): void => {
+    streamError = err instanceof Error ? err : new Error(String(err));
+    ended = true;
+    wake();
+  };
+
+  stream.on('data', onData);
+  stream.once('end', onEnd);
+  stream.once('error', onError);
+
+  try {
+    while (!ended || queue.length > 0) {
+      if (queue.length === 0) {
+        await new Promise<void>((resolve) => {
+          notify = resolve;
+        });
+        continue;
+      }
+
+      yield queue.shift() as IndexChunk;
+    }
+
+    if (streamError) {
+      throw streamError;
+    }
+  } finally {
+    stream.off('data', onData);
+    stream.off('end', onEnd);
+    stream.off('error', onError);
+  }
+}
+
 /**
  * A single entry from the multistream index file
  */
@@ -63,7 +131,7 @@ export async function parseMultistreamIndex(
     const blocks: MultistreamBlock[] = [];
     let lineBuffer = '';
 
-    for await (const chunk of stream) {
+    for await (const chunk of readChunks(stream)) {
       lineBuffer += typeof chunk === 'string' ? chunk : (chunk as Buffer).toString('utf8');
 
       // Process complete lines

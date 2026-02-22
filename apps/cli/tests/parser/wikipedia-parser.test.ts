@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseWikipediaDump } from '../../src/parser/wikipedia-parser.js';
+import type { WikipediaParagraph } from '../../src/parser/types.js';
 import * as path from 'path';
 
 describe('WikipediaParser', () => {
@@ -8,7 +9,7 @@ describe('WikipediaParser', () => {
   describe('parseWikipediaDump', () => {
     it('should parse simple article and yield paragraphs', async () => {
       const filePath = path.join(fixturesDir, 'simple-article.xml');
-      const paragraphs = [];
+      const paragraphs: WikipediaParagraph[] = [];
 
       for await (const paragraph of parseWikipediaDump(filePath)) {
         paragraphs.push(paragraph);
@@ -21,9 +22,22 @@ describe('WikipediaParser', () => {
       expect(paragraphs[0].content).toContain('introduction paragraph');
     });
 
+    it('should parse .xml.bz2 article and yield paragraphs', async () => {
+      const filePath = path.join(fixturesDir, 'simple-article.xml.bz2');
+      const paragraphs: WikipediaParagraph[] = [];
+
+      for await (const paragraph of parseWikipediaDump(filePath)) {
+        paragraphs.push(paragraph);
+      }
+
+      expect(paragraphs.length).toBeGreaterThan(0);
+      expect(paragraphs[0].articleTitle).toBe('Test Article');
+      expect(paragraphs[0].articleId).toBe('1');
+    });
+
     it('should skip redirect pages by default', async () => {
       const filePath = path.join(fixturesDir, 'redirect-page.xml');
-      const paragraphs = [];
+      const paragraphs: WikipediaParagraph[] = [];
 
       for await (const paragraph of parseWikipediaDump(filePath)) {
         paragraphs.push(paragraph);
@@ -34,7 +48,7 @@ describe('WikipediaParser', () => {
 
     it('should process redirect pages when skipRedirects is false', async () => {
       const filePath = path.join(fixturesDir, 'redirect-page.xml');
-      const paragraphs = [];
+      const paragraphs: WikipediaParagraph[] = [];
 
       for await (const paragraph of parseWikipediaDump(filePath, { skipRedirects: false })) {
         paragraphs.push(paragraph);
@@ -46,7 +60,7 @@ describe('WikipediaParser', () => {
 
     it('should number paragraphs within sections correctly', async () => {
       const filePath = path.join(fixturesDir, 'multi-section-article.xml');
-      const paragraphs = [];
+      const paragraphs: WikipediaParagraph[] = [];
 
       for await (const paragraph of parseWikipediaDump(filePath)) {
         paragraphs.push(paragraph);
@@ -72,7 +86,7 @@ describe('WikipediaParser', () => {
 
     it('should extract sections correctly', async () => {
       const filePath = path.join(fixturesDir, 'multi-section-article.xml');
-      const paragraphs = [];
+      const paragraphs: WikipediaParagraph[] = [];
 
       for await (const paragraph of parseWikipediaDump(filePath)) {
         paragraphs.push(paragraph);
@@ -88,7 +102,7 @@ describe('WikipediaParser', () => {
 
     it('should clean wikitext markup', async () => {
       const filePath = path.join(fixturesDir, 'complex-wikitext.xml');
-      const paragraphs = [];
+      const paragraphs: WikipediaParagraph[] = [];
 
       for await (const paragraph of parseWikipediaDump(filePath)) {
         paragraphs.push(paragraph);
@@ -108,7 +122,7 @@ describe('WikipediaParser', () => {
 
     it('should apply minimum paragraph length filter', async () => {
       const filePath = path.join(fixturesDir, 'simple-article.xml');
-      const paragraphs = [];
+      const paragraphs: WikipediaParagraph[] = [];
 
       for await (const paragraph of parseWikipediaDump(filePath, { minParagraphLength: 50 })) {
         paragraphs.push(paragraph);
@@ -144,7 +158,7 @@ describe('WikipediaParser', () => {
       const tmpPath = path.join(fixturesDir, 'multi-page-temp.xml');
       fs.writeFileSync(tmpPath, multiPageXml);
 
-      const paragraphs = [];
+      const paragraphs: WikipediaParagraph[] = [];
       for await (const paragraph of parseWikipediaDump(tmpPath)) {
         paragraphs.push(paragraph);
       }
@@ -205,7 +219,7 @@ describe('WikipediaParser', () => {
         const tmpPath = path.join(fixturesDir, 'empty-temp.xml');
         fs.writeFileSync(tmpPath, emptyXml);
 
-        const paragraphs = [];
+        const paragraphs: WikipediaParagraph[] = [];
         for await (const paragraph of parseWikipediaDump(tmpPath)) {
           paragraphs.push(paragraph);
         }

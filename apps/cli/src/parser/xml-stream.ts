@@ -1,5 +1,4 @@
 import * as R from 'ramda';
-import * as fs from 'fs';
 import { XMLParser } from 'fast-xml-parser';
 import type { WikipediaPage } from './types.js';
 import { WikipediaParserError } from './errors.js';
@@ -20,6 +19,74 @@ const parser = new XMLParser({
  * Large pages exist in Wikipedia dumps; allow larger buffers to avoid hard failures.
  */
 const MAX_BUFFER_SIZE = 200 * 1024 * 1024; // 200MB
+
+type XmlChunk = string | Buffer;
+
+/**
+ * Iterate readable streams that may not implement Symbol.asyncIterator
+ * (e.g. some CJS transform streams such as unbzip2-stream).
+ */
+async function* readChunks(stream: NodeJS.ReadableStream): AsyncGenerator<XmlChunk> {
+  const asyncIterable = stream as NodeJS.ReadableStream & AsyncIterable<XmlChunk>;
+  if (typeof asyncIterable[Symbol.asyncIterator] === 'function') {
+    yield* asyncIterable;
+    return;
+  }
+
+  const queue: XmlChunk[] = [];
+  let ended = false;
+  let streamError: Error | undefined;
+  let notify: (() => void) | undefined;
+
+  const wake = (): void => {
+    if (notify) {
+      const callback = notify;
+      notify = undefined;
+      callback();
+    }
+  };
+
+  const onData = (chunk: XmlChunk): void => {
+    queue.push(chunk);
+    wake();
+  };
+
+  const onEnd = (): void => {
+    ended = true;
+    wake();
+  };
+
+  const onError = (err: unknown): void => {
+    streamError = err instanceof Error ? err : new Error(String(err));
+    ended = true;
+    wake();
+  };
+
+  stream.on('data', onData);
+  stream.once('end', onEnd);
+  stream.once('error', onError);
+
+  try {
+    while (!ended || queue.length > 0) {
+      if (queue.length === 0) {
+        await new Promise<void>((resolve) => {
+          notify = resolve;
+        });
+        continue;
+      }
+
+      yield queue.shift() as XmlChunk;
+    }
+
+    if (streamError) {
+      throw streamError;
+    }
+  } finally {
+    stream.off('data', onData);
+    stream.off('end', onEnd);
+    stream.off('error', onError);
+  }
+}
 
 /**
  * Safely extract text content from revision element
@@ -98,7 +165,7 @@ export async function* streamXmlPages(
 
     let buffer = '';
 
-    for await (const chunk of stream) {
+    for await (const chunk of readChunks(stream)) {
       // Handle both string chunks (utf8 file stream) and Buffer chunks (bz2 stream)
       buffer += typeof chunk === 'string' ? chunk : (chunk as Buffer).toString('utf8');
 
