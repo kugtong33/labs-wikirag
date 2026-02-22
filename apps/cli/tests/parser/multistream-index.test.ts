@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import {
   parseMultistreamIndex,
+  parseMultistreamBlocks,
   getStreamBlocks,
   type MultistreamBlock,
 } from '../../src/parser/multistream-index.js';
@@ -117,6 +118,18 @@ describe('multistream-index', () => {
       expect(blocks[2].byteOffset).toBe(9875);
       expect(blocks[2].articleIds).toHaveLength(3);
       expect(blocks[2].endOffset).toBe(-1);
+    });
+  });
+
+  describe('parseMultistreamBlocks', () => {
+    it('should parse compact block ranges directly from index file', async () => {
+      const indexPath = path.join(fixturesDir, 'multistream-index.txt');
+      const blocks = await parseMultistreamBlocks(indexPath);
+
+      expect(blocks).toHaveLength(3);
+      expect(blocks[0]).toMatchObject({ byteOffset: 0, endOffset: 4124 });
+      expect(blocks[1]).toMatchObject({ byteOffset: 4125, endOffset: 9874 });
+      expect(blocks[2]).toMatchObject({ byteOffset: 9875, endOffset: -1 });
     });
   });
 });

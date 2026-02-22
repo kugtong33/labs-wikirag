@@ -110,6 +110,133 @@ export interface StreamBlockRange {
 }
 
 /**
+ * Parse multistream index into compact block ranges.
+ *
+ * This is optimized for production-scale index files: it tracks only unique
+ * stream offsets while scanning line-by-line, avoiding allocation of millions
+ * of per-article entries.
+ */
+export async function parseMultistreamBlocks(
+  indexFilePath: string,
+  options?: {
+    progressIntervalLines?: number;
+    onProgress?: (stats: { scannedLines: number; blocksDiscovered: number }) => void;
+  },
+): Promise<StreamBlockRange[]> {
+  try {
+    const progressIntervalLines = options?.progressIntervalLines ?? 250_000;
+
+    const stream = indexFilePath.endsWith('.bz2')
+      ? createBz2ReadStream(indexFilePath)
+      : await (async () => {
+          const { createReadStream } = await import('fs');
+          return createReadStream(indexFilePath, { encoding: 'utf8' });
+        })();
+
+    const blocks: StreamBlockRange[] = [];
+    let currentOffset: number | null = null;
+    let lineBuffer = '';
+    let scannedLines = 0;
+
+    const emitProgress = (): void => {
+      if (!options?.onProgress) {
+        return;
+      }
+
+      options.onProgress({
+        scannedLines,
+        blocksDiscovered: blocks.length + (currentOffset === null ? 0 : 1),
+      });
+    };
+
+    for await (const chunk of readChunks(stream)) {
+      lineBuffer += typeof chunk === 'string' ? chunk : (chunk as Buffer).toString('utf8');
+
+      const lines = lineBuffer.split('\n');
+      lineBuffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        scannedLines += 1;
+
+        const entry = parseLine(line);
+        if (!entry) {
+          if (scannedLines % progressIntervalLines === 0) emitProgress();
+          continue;
+        }
+
+        if (currentOffset === null) {
+          currentOffset = entry.byteOffset;
+          if (scannedLines % progressIntervalLines === 0) emitProgress();
+          continue;
+        }
+
+        if (entry.byteOffset === currentOffset) {
+          if (scannedLines % progressIntervalLines === 0) emitProgress();
+          continue;
+        }
+
+        if (entry.byteOffset < currentOffset) {
+          throw new WikipediaParserError(
+            `Index offsets are not sorted: ${entry.byteOffset} after ${currentOffset}`,
+            'parseMultistreamBlocks',
+          );
+        }
+
+        blocks.push({
+          byteOffset: currentOffset,
+          endOffset: entry.byteOffset - 1,
+          articleIds: [],
+        });
+
+        currentOffset = entry.byteOffset;
+        if (scannedLines % progressIntervalLines === 0) emitProgress();
+      }
+    }
+
+    if (lineBuffer.trim()) {
+      const entry = parseLine(lineBuffer);
+      if (entry) {
+        if (currentOffset === null) {
+          currentOffset = entry.byteOffset;
+        } else if (entry.byteOffset < currentOffset) {
+          throw new WikipediaParserError(
+            `Index offsets are not sorted: ${entry.byteOffset} after ${currentOffset}`,
+            'parseMultistreamBlocks',
+          );
+        } else if (entry.byteOffset !== currentOffset) {
+          blocks.push({
+            byteOffset: currentOffset,
+            endOffset: entry.byteOffset - 1,
+            articleIds: [],
+          });
+          currentOffset = entry.byteOffset;
+        }
+      }
+    }
+
+    if (currentOffset !== null) {
+      blocks.push({
+        byteOffset: currentOffset,
+        endOffset: -1,
+        articleIds: [],
+      });
+    }
+
+    emitProgress();
+
+    return blocks;
+  } catch (error) {
+    if (error instanceof WikipediaParserError) throw error;
+    throw new WikipediaParserError(
+      `Failed to parse multistream index blocks: ${indexFilePath}`,
+      'parseMultistreamBlocks',
+      undefined,
+      error as Error,
+    );
+  }
+}
+
+/**
  * Parse the Wikipedia multistream index file.
  *
  * Supports both compressed (.txt.bz2) and uncompressed (.txt) index files.

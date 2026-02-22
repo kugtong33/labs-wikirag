@@ -11,7 +11,7 @@
  */
 
 import { parseWikipediaDump, type WikipediaParagraph } from '../../parser/index.js';
-import { parseMultistreamIndex, getStreamBlocks } from '../../parser/multistream-index.js';
+import { parseMultistreamBlocks } from '../../parser/multistream-index.js';
 import { readMultistreamParallel } from '../../parser/parallel-stream-reader.js';
 import { EmbeddingPipeline } from '../../embedding/pipeline.js';
 import { qdrantClient, collectionManager } from '@wikirag/qdrant';
@@ -277,13 +277,21 @@ async function runIndexingPipeline(
     console.log(`🗂️  Parsing multistream index: ${options.indexFile}`);
 
     // Multistream parallel mode: parse index, filter completed blocks, run parallel
-    const allEntries = await parseMultistreamIndex(options.indexFile!);
-    let blocks = getStreamBlocks(allEntries);
+    let blocks = await parseMultistreamBlocks(options.indexFile!, {
+      progressIntervalLines: 500_000,
+      onProgress: ({ scannedLines, blocksDiscovered }) => {
+        console.log(
+          `🗂️  Index scan progress: ${scannedLines.toLocaleString()} lines, ${blocksDiscovered.toLocaleString()} blocks`,
+        );
+      },
+    });
+    console.log(`📚 Parsed ${blocks.length} multistream blocks`);
 
     // Resume: filter out already-completed blocks
     const completedOffsets = state.checkpoint.completedBlockOffsets ?? [];
     if (isResume && completedOffsets.length > 0) {
-      blocks = blocks.filter((b) => !completedOffsets.includes(b.byteOffset));
+      const completedOffsetSet = new Set<number>(completedOffsets);
+      blocks = blocks.filter((b) => !completedOffsetSet.has(b.byteOffset));
       console.log(
         `⏯️  Resuming multistream: ${blocks.length} blocks remaining (${completedOffsets.length} completed)`
       );

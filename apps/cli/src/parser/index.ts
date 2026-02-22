@@ -32,6 +32,7 @@ export { createBz2ReadStream } from './bz2-stream.js';
 export { detectDumpFormat, createDumpStream, type DumpFormat } from './format-detector.js';
 export {
   parseMultistreamIndex,
+  parseMultistreamBlocks,
   getStreamBlocks,
   type MultistreamBlock,
   type StreamBlockRange,
