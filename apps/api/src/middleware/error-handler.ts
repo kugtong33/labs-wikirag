@@ -45,8 +45,18 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  const requestWithId = req as Request & { id?: string | number };
+
   // Log the error internally (with stack) but never expose it
-  logger.error({ err, url: req.url, method: req.method }, 'Unhandled error');
+  logger.error(
+    {
+      err,
+      url: req.url,
+      method: req.method,
+      requestId: requestWithId.id,
+    },
+    'Unhandled error',
+  );
 
   let problem: ProblemDetails;
 

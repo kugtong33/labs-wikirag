@@ -60,6 +60,8 @@ describe('POST /api/inquiry', () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    delete process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS;
+    delete process.env.INQUIRY_TOTAL_DEADLINE_MS;
   });
 
   it('returns SSE content-type header', async () => {
@@ -145,10 +147,16 @@ describe('POST /api/inquiry', () => {
     const events = parseSse(res.body as string);
     expect(events.some((e) => e.event === 'stream.error')).toBe(true);
     const errorData = JSON.parse(events.find((e) => e.event === 'stream.error')!.data);
-    expect(errorData).toEqual({ message: 'Requested technique is unavailable.' });
+    expect(errorData).toMatchObject({
+      type: 'urn:wikirag:error:unknown-technique',
+      title: 'Bad Request',
+      status: 400,
+      detail: 'Requested technique is unavailable.',
+      instance: '/api/inquiry',
+    });
   });
 
-  it('does not leak internal error details in stream.error', async () => {
+  it('emits RFC 9457-shaped stream.error without internal details', async () => {
     mockExecutePipeline.mockRejectedValueOnce(
       new Error('OpenAI key leaked: sk-123-secret'),
     );
@@ -167,10 +175,17 @@ describe('POST /api/inquiry', () => {
     const events = parseSse(res.body as string);
     const errorData = JSON.parse(events.find((e) => e.event === 'stream.error')!.data);
 
-    expect(errorData).toEqual({ message: 'Unable to complete inquiry at this time.' });
+    expect(errorData).toMatchObject({
+      type: 'about:blank',
+      title: 'Internal Server Error',
+      status: 500,
+      detail: 'Unable to complete inquiry at this time.',
+      instance: '/api/inquiry',
+    });
+    expect(JSON.stringify(errorData)).not.toContain('sk-123-secret');
   });
 
-  it('emits a watchdog first chunk before deadline when pipeline is still running', async () => {
+  it('emits first-chunk timeout as stream.error when no chunk starts in time', async () => {
     process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS = '10';
     process.env.INQUIRY_TOTAL_DEADLINE_MS = '30';
     mockExecutePipeline.mockImplementation(() => new Promise(() => {}));
@@ -190,15 +205,17 @@ describe('POST /api/inquiry', () => {
     const res = await responsePromise;
     const events = parseSse(res.body as string);
 
-    expect(events[0]?.event).toBe('response.chunk');
-    expect(JSON.parse(events[0]!.data)).toEqual({ text: '' });
-
-    delete process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS;
-    delete process.env.INQUIRY_TOTAL_DEADLINE_MS;
+    expect(events[0]?.event).toBe('stream.error');
+    expect(JSON.parse(events[0]!.data)).toMatchObject({
+      type: 'urn:wikirag:error:first-chunk-timeout',
+      title: 'Gateway Timeout',
+      status: 504,
+      detail: 'First response chunk exceeded 10ms.',
+    });
   });
 
-  it('times out long inquiries and emits stream.error', async () => {
-    process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS = '10';
+  it('times out long inquiries at total deadline and emits stream.error', async () => {
+    process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS = '50';
     process.env.INQUIRY_TOTAL_DEADLINE_MS = '20';
     mockExecutePipeline.mockImplementation(() => new Promise(() => {}));
 
@@ -219,12 +236,12 @@ describe('POST /api/inquiry', () => {
     const errorEvent = events.find((e) => e.event === 'stream.error');
 
     expect(errorEvent).toBeDefined();
-    expect(JSON.parse(errorEvent!.data)).toEqual({
-      message: 'Unable to complete inquiry at this time.',
+    expect(JSON.parse(errorEvent!.data)).toMatchObject({
+      type: 'urn:wikirag:error:inquiry-timeout',
+      title: 'Gateway Timeout',
+      status: 504,
+      detail: 'Inquiry exceeded 20ms.',
     });
-
-    delete process.env.INQUIRY_FIRST_CHUNK_DEADLINE_MS;
-    delete process.env.INQUIRY_TOTAL_DEADLINE_MS;
   });
 
   it('returns 400 RFC 9457 error when query is missing', async () => {
@@ -237,6 +254,48 @@ describe('POST /api/inquiry', () => {
     expect(res.body).toMatchObject({
       type: expect.any(String),
       title: expect.any(String),
+      status: 400,
+    });
+  });
+
+  it('sanitizes control chars and whitespace before pipeline execution', async () => {
+    mockExecutePipeline.mockResolvedValueOnce({
+      query: 'ignored',
+      response: 'Answer',
+      config: { topK: 5, collectionName: 'test' },
+      metadata: {},
+    });
+
+    const app = createApp();
+    await request(app)
+      .post('/api/inquiry')
+      .send({ query: '  hello\u0000 world\n  ', technique: 'naive-rag' })
+      .buffer(true)
+      .parse((res, callback) => {
+        let data = '';
+        res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+        res.on('end', () => callback(null, data));
+      });
+
+    expect(mockExecutePipeline).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ query: 'hello world' }),
+    );
+  });
+
+  it('returns 400 RFC 9457 error when query exceeds max length', async () => {
+    const app = createApp();
+    const tooLongQuery = 'a'.repeat(2001);
+
+    const res = await request(app)
+      .post('/api/inquiry')
+      .send({ query: tooLongQuery, technique: 'naive-rag' });
+
+    expect(res.status).toBe(400);
+    expect(res.headers['content-type']).toMatch(/application\/problem\+json/);
+    expect(res.body).toMatchObject({
+      type: 'urn:wikirag:error:query-too-long',
+      title: 'Bad Request',
       status: 400,
     });
   });

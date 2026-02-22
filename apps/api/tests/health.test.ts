@@ -73,4 +73,15 @@ describe('GET /api/health', () => {
     expect(res.body).toHaveProperty('timestamp');
     expect(typeof res.body.timestamp).toBe('string');
   });
+
+  it('includes x-request-id response header for correlation', async () => {
+    const { qdrantClient } = await import('@wikirag/qdrant');
+    vi.mocked(qdrantClient.ensureConnected).mockResolvedValueOnce(undefined);
+
+    const app = createApp();
+    const res = await request(app).get('/api/health');
+
+    expect(typeof res.headers['x-request-id']).toBe('string');
+    expect(res.headers['x-request-id'].length).toBeGreaterThan(0);
+  });
 });

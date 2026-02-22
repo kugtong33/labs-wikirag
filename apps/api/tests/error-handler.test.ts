@@ -9,16 +9,6 @@ import request from 'supertest';
 import express from 'express';
 import { errorHandler, ApiError } from '../src/middleware/error-handler.js';
 
-// Suppress logger output in tests
-vi.mock('../src/server.js', () => ({
-  logger: {
-    error: vi.fn(),
-    info: vi.fn(),
-    debug: vi.fn(),
-  },
-  createApp: vi.fn(),
-}));
-
 /** Create a minimal test app that throws a specific error. */
 function makeErrorApp(err: unknown): express.Application {
   const app = express();
