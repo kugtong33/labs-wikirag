@@ -11,6 +11,8 @@
  */
 
 import { parseWikipediaDump, type WikipediaParagraph } from '../../parser/index.js';
+import { parseMultistreamIndex, getStreamBlocks } from '../../parser/multistream-index.js';
+import { readMultistreamParallel } from '../../parser/parallel-stream-reader.js';
 import { EmbeddingPipeline } from '../../embedding/pipeline.js';
 import { qdrantClient, collectionManager } from '@wikirag/qdrant';
 import {
@@ -261,7 +263,59 @@ async function runIndexingPipeline(
   embeddingProvider: string,
   embeddingModel: string
 ): Promise<void> {
-  const paragraphs = parseWikipediaDump(options.dumpFile);
+  const streams = options.streams ?? 1;
+  const useMultistream = streams > 1 && !!options.indexFile;
+
+  let paragraphs: AsyncIterable<WikipediaParagraph>;
+
+  if (useMultistream) {
+    // Multistream parallel mode: parse index, filter completed blocks, run parallel
+    const allEntries = await parseMultistreamIndex(options.indexFile!);
+    let blocks = getStreamBlocks(allEntries);
+
+    // Resume: filter out already-completed blocks
+    const completedOffsets = state.checkpoint.completedBlockOffsets ?? [];
+    if (isResume && completedOffsets.length > 0) {
+      blocks = blocks.filter((b) => !completedOffsets.includes(b.byteOffset));
+      console.log(
+        `⏯️  Resuming multistream: ${blocks.length} blocks remaining (${completedOffsets.length} completed)`
+      );
+    }
+
+    console.log(`⚡ Multistream mode: ${blocks.length} blocks, ${streams} parallel streams`);
+
+    paragraphs = readMultistreamParallel(options.dumpFile, blocks, streams);
+
+    // Wrap to track block completion for checkpoint
+    const filteredParagraphs = trackMultistreamProgress(
+      paragraphs,
+      blocks,
+      state,
+      checkpointFile
+    );
+
+    const pipeline = new EmbeddingPipeline({
+      dumpVersion: options.dumpDate,
+      strategy: options.strategy,
+      embeddingProvider,
+      embedding: {
+        apiKey: process.env.OPENAI_API_KEY || '',
+        model: embeddingModel,
+        batchSize: options.batchSize || 100,
+      },
+      qdrant: {
+        collectionName: state.checkpoint.collectionName,
+      },
+      logInterval: DEFAULT_CHECKPOINT_INTERVAL,
+    });
+
+    await pipeline.runWithParagraphs(filteredParagraphs);
+    await persistCheckpointProgress(state, checkpointFile, false);
+    return;
+  }
+
+  // Sequential mode (single-stream, handles both .xml and .xml.bz2 via auto-detect)
+  paragraphs = parseWikipediaDump(options.dumpFile);
   const filteredParagraphs = filterParagraphs(
     paragraphs,
     state.checkpoint.lastArticleId,
@@ -290,6 +344,60 @@ async function runIndexingPipeline(
   // Flush final completed article and save checkpoint
   finalizePendingArticleProgress(state);
   await persistCheckpointProgress(state, checkpointFile, false);
+}
+
+/**
+ * Track multistream block completion for checkpointing.
+ * Yields paragraphs unchanged while recording completed block offsets.
+ */
+async function* trackMultistreamProgress(
+  paragraphs: AsyncIterable<WikipediaParagraph>,
+  blocks: import('../../parser/multistream-index.js').StreamBlockRange[],
+  state: IndexingState,
+  checkpointFile: string
+): AsyncGenerator<WikipediaParagraph> {
+  // Build a map of articleId -> block byteOffset for tracking completion
+  const articleToBlock = new Map<string, number>();
+  for (const block of blocks) {
+    for (const articleId of block.articleIds) {
+      articleToBlock.set(articleId, block.byteOffset);
+    }
+  }
+
+  let lastBlockOffset: number | null = null;
+
+  for await (const paragraph of paragraphs) {
+    if (state.isShuttingDown) break;
+
+    const blockOffset = articleToBlock.get(paragraph.articleId);
+
+    // When we transition to a new block, record the previous block as completed
+    if (blockOffset !== undefined && blockOffset !== lastBlockOffset) {
+      if (lastBlockOffset !== null) {
+        if (!state.checkpoint.completedBlockOffsets) {
+          state.checkpoint.completedBlockOffsets = [];
+        }
+        if (!state.checkpoint.completedBlockOffsets.includes(lastBlockOffset)) {
+          state.checkpoint.completedBlockOffsets.push(lastBlockOffset);
+          await persistCheckpointProgress(state, checkpointFile, true);
+        }
+      }
+      lastBlockOffset = blockOffset;
+    }
+
+    await handleProgress(paragraph, state, checkpointFile);
+    yield paragraph;
+  }
+
+  // Record final block as completed
+  if (lastBlockOffset !== null) {
+    if (!state.checkpoint.completedBlockOffsets) {
+      state.checkpoint.completedBlockOffsets = [];
+    }
+    if (!state.checkpoint.completedBlockOffsets.includes(lastBlockOffset)) {
+      state.checkpoint.completedBlockOffsets.push(lastBlockOffset);
+    }
+  }
 }
 
 /**

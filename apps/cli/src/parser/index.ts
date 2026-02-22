@@ -26,3 +26,14 @@ export { streamXmlPages } from './xml-stream.js';
 export { parseSections } from './section-parser.js';
 export { extractParagraphsFromSection } from './paragraph-extractor.js';
 export { cleanWikitext } from './wikitext-cleaner.js';
+
+// Bz2 and multistream support
+export { createBz2ReadStream } from './bz2-stream.js';
+export { detectDumpFormat, createDumpStream, type DumpFormat } from './format-detector.js';
+export {
+  parseMultistreamIndex,
+  getStreamBlocks,
+  type MultistreamBlock,
+  type StreamBlockRange,
+} from './multistream-index.js';
+export { readMultistreamParallel } from './parallel-stream-reader.js';

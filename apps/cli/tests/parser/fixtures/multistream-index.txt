@@ -1,0 +1,9 @@
+0:1:Anarchism
+0:12:Autism
+0:25:Albedo
+4125:39:Islam
+4125:290:United States
+4125:303:Association football
+9875:305:Canada
+9875:307:France
+9875:308:List of encyclopedias

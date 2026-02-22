@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import { XMLParser } from 'fast-xml-parser';
 import type { WikipediaPage } from './types.js';
 import { WikipediaParserError } from './errors.js';
+import { createDumpStream } from './format-detector.js';
 
 /**
  * XML Parser configuration for fast-xml-parser
@@ -60,34 +61,46 @@ const isRedirect = R.pipe(
 );
 
 /**
- * Stream Wikipedia pages from an XML dump file
- * Uses Node.js streams + fast-xml-parser for bounded memory
+ * Stream Wikipedia pages from an XML dump file or readable stream.
+ * Uses Node.js streams + fast-xml-parser for bounded memory.
  *
  * **Approach:**
- * 1. Read file incrementally with fs.createReadStream
+ * 1. Accept file path (auto-detects xml/bz2) or a pre-built ReadableStream
  * 2. Accumulate chunks until we have complete <page>...</page> elements
  * 3. Parse each page with fast-xml-parser
  * 4. Yield WikipediaPage objects one at a time
  * 5. Memory stays bounded - only one page in memory at once
  *
- * @param filePath - Path to Wikipedia XML dump file
+ * @param input - Path to Wikipedia dump file (.xml or .xml.bz2) OR a pre-built ReadableStream
  * @yields WikipediaPage objects
  *
  * @example
+ * // From file path (auto-detects format)
  * for await (const page of streamXmlPages('enwiki-dump.xml')) {
  *   console.log(page.title, page.isRedirect);
  * }
+ *
+ * @example
+ * // From pre-built stream (e.g., decompressed bz2 block)
+ * const stream = createBz2ReadStream(filePath, { start: 0, end: 4125 });
+ * for await (const page of streamXmlPages(stream)) {
+ *   console.log(page.title);
+ * }
  */
 export async function* streamXmlPages(
-  filePath: string
+  input: string | NodeJS.ReadableStream
 ): AsyncGenerator<WikipediaPage, void, unknown> {
   try {
-    const stream = fs.createReadStream(filePath, { encoding: 'utf8' });
+    const stream =
+      typeof input === 'string'
+        ? createDumpStream(input)
+        : input;
 
     let buffer = '';
 
     for await (const chunk of stream) {
-      buffer += chunk;
+      // Handle both string chunks (utf8 file stream) and Buffer chunks (bz2 stream)
+      buffer += typeof chunk === 'string' ? chunk : (chunk as Buffer).toString('utf8');
 
       // Extract complete <page> elements using index scanning (safer than regex)
       while (true) {
@@ -167,7 +180,7 @@ export async function* streamXmlPages(
       throw error;
     }
     throw new WikipediaParserError(
-      `Failed to stream XML pages from ${filePath}`,
+      `Failed to stream XML pages from ${typeof input === 'string' ? input : '<stream>'}`,
       'streamXmlPages',
       undefined,
       error as Error

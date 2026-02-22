@@ -28,6 +28,10 @@ export interface IndexCommandOptions {
   batchSize?: number;
   /** Custom checkpoint file path (optional) */
   checkpointFile?: string;
+  /** Number of parallel bz2 streams for multistream processing (optional, default: 1) */
+  streams?: number;
+  /** Path to multistream index file (.txt or .txt.bz2) required when --streams > 1 */
+  indexFile?: string;
 }
 
 /**
@@ -70,6 +74,16 @@ export function createIndexCommand(): Command {
     .option(
       '--checkpoint-file <path>',
       'Custom checkpoint file path (default: indexing-checkpoint-{strategy}.json)'
+    )
+    .option(
+      '--streams <count>',
+      'Number of parallel bz2 streams for multistream processing (requires --index-file)',
+      (value) => parseInt(value, 10),
+      1
+    )
+    .option(
+      '--index-file <path>',
+      'Path to multistream index file (.txt or .txt.bz2), required when --streams > 1'
     )
     .action(async (options: IndexCommandOptions) => {
       try {
@@ -137,5 +151,22 @@ export function validateOptions(options: IndexCommandOptions): void {
   // Validate model name (basic check)
   if (options.model && options.model.trim() === '') {
     throw new Error('Model name cannot be empty');
+  }
+
+  // Validate streams count
+  if (options.streams !== undefined) {
+    if (options.streams < 1) {
+      throw new Error(`Invalid streams count: ${options.streams}. Must be at least 1`);
+    }
+  }
+
+  // --streams > 1 requires --index-file
+  if ((options.streams ?? 1) > 1 && !options.indexFile) {
+    throw new Error('--index-file is required when --streams > 1');
+  }
+
+  // --index-file requires bz2 format
+  if (options.indexFile && !options.dumpFile.endsWith('.bz2')) {
+    throw new Error('--index-file can only be used with a .xml.bz2 dump file');
   }
 }

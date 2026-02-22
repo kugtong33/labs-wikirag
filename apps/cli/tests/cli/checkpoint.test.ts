@@ -329,4 +329,79 @@ describe('Checkpoint Manager', () => {
       expect(metadata).not.toHaveProperty('embeddingModel');
     });
   });
+
+  describe('completedBlockOffsets (multistream resume)', () => {
+    it('should save and load completedBlockOffsets', async () => {
+      const checkpoint: CheckpointData = {
+        lastArticleId: '42',
+        articlesProcessed: 300,
+        totalArticles: 300,
+        strategy: 'paragraph',
+        dumpFile: '/path/to/dump.xml.bz2',
+        dumpDate: '20260210',
+        embeddingModel: 'text-embedding-3-small',
+        collectionName: 'wiki-paragraph-20260210',
+        timestamp: '2026-02-11T00:00:00.000Z',
+        completedBlockOffsets: [0, 4125, 9875],
+      };
+
+      await saveCheckpoint(checkpoint, testCheckpointPath);
+      const loaded = await loadCheckpoint(testCheckpointPath);
+
+      expect(loaded.completedBlockOffsets).toEqual([0, 4125, 9875]);
+    });
+
+    it('should load legacy checkpoint without completedBlockOffsets as undefined', async () => {
+      // Simulate an old checkpoint file that predates multistream support
+      const legacyCheckpoint = {
+        lastArticleId: '10',
+        articlesProcessed: 100,
+        totalArticles: 100,
+        strategy: 'paragraph',
+        dumpFile: '/path/to/dump.xml',
+        dumpDate: '20260210',
+        embeddingModel: 'text-embedding-3-small',
+        collectionName: 'wiki-paragraph-20260210',
+        timestamp: '2026-02-11T00:00:00.000Z',
+        // no completedBlockOffsets field
+      };
+
+      await fs.writeFile(testCheckpointPath, JSON.stringify(legacyCheckpoint), 'utf-8');
+      const loaded = await loadCheckpoint(testCheckpointPath);
+
+      expect(loaded.completedBlockOffsets).toBeUndefined();
+    });
+
+    it('should save checkpoint with empty completedBlockOffsets array', async () => {
+      const checkpoint: CheckpointData = {
+        lastArticleId: '0',
+        articlesProcessed: 0,
+        totalArticles: 0,
+        strategy: 'paragraph',
+        dumpFile: '/path/to/dump.xml.bz2',
+        dumpDate: '20260210',
+        embeddingModel: 'text-embedding-3-small',
+        collectionName: 'wiki-paragraph-20260210',
+        timestamp: '2026-02-11T00:00:00.000Z',
+        completedBlockOffsets: [],
+      };
+
+      await saveCheckpoint(checkpoint, testCheckpointPath);
+      const loaded = await loadCheckpoint(testCheckpointPath);
+
+      expect(loaded.completedBlockOffsets).toEqual([]);
+    });
+
+    it('createInitialCheckpoint should not include completedBlockOffsets', () => {
+      const checkpoint = createInitialCheckpoint({
+        strategy: 'paragraph',
+        dumpFile: '/test.xml.bz2',
+        dumpDate: '20260210',
+        embeddingModel: 'text-embedding-3-small',
+        collectionName: 'wiki-paragraph-20260210',
+      });
+
+      expect(checkpoint.completedBlockOffsets).toBeUndefined();
+    });
+  });
 });

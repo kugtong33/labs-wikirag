@@ -46,7 +46,7 @@ development_status:
   1-3-wikipedia-xml-streaming-parser: done
   1-4-embedding-generation-and-qdrant-insertion: done
   1-5-indexing-cli-with-checkpoint-and-resume: done
-  1-6-bz2-multistream-decompression-and-format-auto-detection: ready-for-dev
+  1-6-bz2-multistream-decompression-and-format-auto-detection: review
   epic-1-retrospective: optional
 
   epic-1-5: in-progress

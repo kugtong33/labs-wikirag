@@ -19,7 +19,8 @@
     "@wikirag/qdrant": "workspace:*",
     "commander": "^12.1.0",
     "fast-xml-parser": "^5.3.4",
-    "ramda": "^0.32.0"
+    "ramda": "^0.32.0",
+    "unbzip2-stream": "^1.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.2.2",

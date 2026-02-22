@@ -33,6 +33,8 @@ export interface CheckpointData {
   collectionName: string;
   /** Checkpoint timestamp */
   timestamp: string;
+  /** Completed bz2 stream block byte offsets (multistream mode only) */
+  completedBlockOffsets?: number[];
 }
 
 /**
