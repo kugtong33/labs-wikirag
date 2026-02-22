@@ -27,6 +27,21 @@ function makeErrorFetch(): Promise<Response> {
   return Promise.reject(new Error('Network error'));
 }
 
+function makeProblemResponse(detail: string, status = 400): Response {
+  return new Response(
+    JSON.stringify({
+      type: 'about:blank',
+      title: 'Bad Request',
+      status,
+      detail,
+    }),
+    {
+      status,
+      headers: { 'Content-Type': 'application/problem+json' },
+    },
+  );
+}
+
 const CHUNK_SSE = [
   'event: response.chunk\n',
   'data: {"text":"Hello "}\n',
@@ -41,7 +56,25 @@ const CHUNK_SSE = [
 
 const ERROR_SSE = [
   'event: stream.error\n',
-  'data: {"message":"Something went wrong"}\n',
+  'data: {"type":"about:blank","title":"Internal Server Error","status":500,"detail":"Unable to complete inquiry at this time."}\n',
+  '\n',
+].join('');
+
+const FIRST_REQUEST_SSE = [
+  'event: response.chunk\n',
+  'data: {"text":"OLD "}\n',
+  '\n',
+  'event: stream.done\n',
+  'data: {"technique":"naive-rag"}\n',
+  '\n',
+].join('');
+
+const SECOND_REQUEST_SSE = [
+  'event: response.chunk\n',
+  'data: {"text":"NEW"}\n',
+  '\n',
+  'event: stream.done\n',
+  'data: {"technique":"naive-rag"}\n',
   '\n',
 ].join('');
 
@@ -129,7 +162,42 @@ describe('useStreamingQuery', () => {
 
     await waitFor(() => expect(result.current.status).toBe('error'));
 
-    expect(result.current.error).toBeTruthy();
+    expect(result.current.error).toBe('Unable to complete inquiry at this time.');
+  });
+
+  it('transitions to error status on non-OK HTTP responses', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      makeProblemResponse('"query" must be 2000 characters or fewer', 400),
+    );
+
+    const { result } = renderHook(() => useStreamingQuery());
+
+    act(() => {
+      result.current.submit('test', 'naive-rag');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+
+    expect(result.current.error).toBe('"query" must be 2000 characters or fewer');
+  });
+
+  it('transitions to error status when response is not SSE', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ data: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const { result } = renderHook(() => useStreamingQuery());
+
+    act(() => {
+      result.current.submit('test', 'naive-rag');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+
+    expect(result.current.error).toBe('Unable to complete inquiry at this time.');
   });
 
   it('shows user-friendly error (no raw technical detail) on network failure', async () => {
@@ -166,5 +234,31 @@ describe('useStreamingQuery', () => {
         body: JSON.stringify({ query: 'Who is Einstein?', technique: 'naive-rag' }),
       }),
     );
+  });
+
+  it('ignores stale updates from earlier submit calls', async () => {
+    let resolveFirstResponse: ((response: Response) => void) | undefined;
+    const firstResponsePromise = new Promise<Response>((resolve) => {
+      resolveFirstResponse = resolve;
+    });
+
+    vi.mocked(fetch)
+      .mockImplementationOnce(() => firstResponsePromise)
+      .mockResolvedValueOnce(makeSseResponse(SECOND_REQUEST_SSE));
+
+    const { result } = renderHook(() => useStreamingQuery());
+
+    act(() => {
+      result.current.submit('first', 'naive-rag');
+      result.current.submit('second', 'naive-rag');
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('complete'));
+    expect(result.current.responseText).toBe('NEW');
+
+    resolveFirstResponse?.(makeSseResponse(FIRST_REQUEST_SSE));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(result.current.responseText).toBe('NEW');
   });
 });
