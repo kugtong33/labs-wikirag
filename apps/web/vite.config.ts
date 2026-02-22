@@ -11,6 +11,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['wikirag.svg'],
       manifest: {
+        id: '/',
         name: 'WikiRAG',
         short_name: 'WikiRAG',
         description: 'Wikipedia-powered RAG query interface',
