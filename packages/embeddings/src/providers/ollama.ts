@@ -110,25 +110,7 @@ export class OllamaProvider implements EmbeddingProvider {
     }
 
     try {
-      const { response, rateLimitHits } = await this.withRetry(async () => {
-        const res = await fetch(`${this.config.baseUrl}/api/embed`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: this.config.model,
-            input: texts,
-          }),
-        });
-
-        if (!res.ok) {
-          throw new OllamaApiError(
-            `Ollama API error: ${res.status} ${res.statusText}`,
-            res.status
-          );
-        }
-
-        return res.json() as Promise<OllamaEmbedResponse>;
-      });
+      const { response, rateLimitHits } = await this.requestEmbeddings(texts);
 
       const embeddings = response.embeddings;
 
@@ -147,6 +129,10 @@ export class OllamaProvider implements EmbeddingProvider {
         rateLimitHits,
       };
     } catch (error) {
+      if (error instanceof OllamaApiError && error.statusCode === 400 && texts.length > 1) {
+        return this.embedBatchFallbackSingle(texts);
+      }
+
       const failedIndices = R.range(0, texts.length);
       const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -158,6 +144,80 @@ export class OllamaProvider implements EmbeddingProvider {
         rateLimitHits: 0,
       };
     }
+  }
+
+  /**
+   * Request embeddings for one or more texts from Ollama.
+   */
+  private async requestEmbeddings(
+    texts: string[]
+  ): Promise<{ response: OllamaEmbedResponse; rateLimitHits: number }> {
+    return this.withRetry(async () => {
+      const res = await fetch(`${this.config.baseUrl}/api/embed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.config.model,
+          input: texts,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new OllamaApiError(
+          `Ollama API error: ${res.status} ${res.statusText}`,
+          res.status
+        );
+      }
+
+      return res.json() as Promise<OllamaEmbedResponse>;
+    });
+  }
+
+  /**
+   * Fallback path for 400 errors on large/mixed batches.
+   *
+   * Retries one paragraph at a time so valid texts can still be indexed while
+   * problematic texts are reported as per-item failures.
+   */
+  private async embedBatchFallbackSingle(texts: string[]): Promise<BatchEmbeddingResult> {
+    const embeddings: number[][] = [];
+    const successIndices: number[] = [];
+    const failedIndices: number[] = [];
+    const errors: string[] = new Array(texts.length).fill('');
+    let rateLimitHits = 0;
+
+    for (let i = 0; i < texts.length; i += 1) {
+      const text = texts[i];
+
+      try {
+        const { response, rateLimitHits: callRateLimitHits } = await this.requestEmbeddings([text]);
+        rateLimitHits += callRateLimitHits;
+
+        if (!response.embeddings || response.embeddings.length === 0) {
+          failedIndices.push(i);
+          errors[i] = 'No embedding returned for text';
+          continue;
+        }
+
+        if (this.cachedDimensions === null) {
+          this.cachedDimensions = response.embeddings[0].length;
+        }
+
+        embeddings.push(response.embeddings[0]);
+        successIndices.push(i);
+      } catch (error) {
+        failedIndices.push(i);
+        errors[i] = error instanceof Error ? error.message : String(error);
+      }
+    }
+
+    return {
+      embeddings,
+      successIndices,
+      failedIndices,
+      errors,
+      rateLimitHits,
+    };
   }
 
   /**
@@ -219,6 +279,17 @@ export class OllamaProvider implements EmbeddingProvider {
         return { response, rateLimitHits };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Do not retry non-rate-limited 4xx errors (e.g. invalid input/model)
+        if (
+          lastError instanceof OllamaApiError &&
+          lastError.statusCode !== undefined &&
+          lastError.statusCode >= 400 &&
+          lastError.statusCode < 500 &&
+          lastError.statusCode !== 429
+        ) {
+          break;
+        }
 
         if (attempt === this.config.maxRetries) {
           break;

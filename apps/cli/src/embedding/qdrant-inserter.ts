@@ -8,6 +8,7 @@
  */
 
 import * as R from 'ramda';
+import { createHash } from 'node:crypto';
 import type { EmbeddedParagraph, QdrantInsertConfig } from './types.js';
 import { collectionManager, type CollectionManager } from '@wikirag/qdrant';
 import { QdrantInsertError } from './errors.js';
@@ -26,7 +27,7 @@ const DEFAULT_BATCH_SIZE = 100;
  * Point structure for Qdrant upsert operation
  */
 interface QdrantPoint {
-  id: string;
+  id: string | number;
   vector: number[];
   payload: Record<string, unknown>;
 }
@@ -161,30 +162,38 @@ export class QdrantInserter {
   }
 
   /**
-   * Generate a unique point ID for a paragraph
+   * Generate a deterministic UUID point ID for a paragraph
    *
-   * ID format: {articleTitle}:{sectionName}:{paragraphPosition}:{globalIndex}
-   * - Uses URL-safe encoding for article/section names
-   * - Includes global insertion count for uniqueness
+   * Qdrant requires IDs to be either unsigned integers or UUID strings.
+   * We derive a stable UUID from paragraph identity fields so retries/resumes
+   * upsert the same point instead of creating duplicates.
    *
    * @param paragraph - Embedded paragraph
    * @param batchIndex - Index within current batch
    * @returns Unique point ID
    */
   private generatePointId(paragraph: EmbeddedParagraph, batchIndex: number): string {
-    const { articleTitle, articleId, sectionName, paragraphPosition } = paragraph.payload;
+    const { articleTitle, articleId, sectionName, paragraphPosition, dumpVersion } = paragraph.payload;
+    const source = [
+      articleId,
+      articleTitle,
+      sectionName || 'intro',
+      String(paragraphPosition),
+      dumpVersion,
+      String(batchIndex),
+    ].join('|');
 
-    // URL-safe encoding using Ramda
-    const encode = R.pipe(
-      R.replace(/ /g, '_'),
-      R.replace(/[^a-zA-Z0-9_-]/g, '')
-    );
+    const hex = createHash('sha256').update(source).digest('hex');
 
-    const encodedTitle = encode(articleTitle);
-    const encodedSection = encode(sectionName || 'intro');
-    const globalIndex = this.insertedCount + batchIndex;
+    // Shape hash into RFC4122 UUID v4-compatible form
+    const part1 = hex.slice(0, 8);
+    const part2 = hex.slice(8, 12);
+    const part3 = `4${hex.slice(13, 16)}`;
+    const variantNibble = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+    const part4 = `${variantNibble}${hex.slice(17, 20)}`;
+    const part5 = hex.slice(20, 32);
 
-    return `${articleId}:${encodedTitle}:${encodedSection}:${paragraphPosition}:${globalIndex}`;
+    return `${part1}-${part2}-${part3}-${part4}-${part5}`;
   }
 
   /**

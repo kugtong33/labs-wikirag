@@ -166,6 +166,25 @@ describe('OllamaProvider', () => {
       expect(result.errors).toHaveLength(1);
     });
 
+    it('should fallback to per-item embedding on batch 400 errors', async () => {
+      mockFetch
+        // Initial batch call fails with 400
+        .mockResolvedValueOnce(mockHttpError(400, 'Bad Request'))
+        // Fallback item 0 succeeds
+        .mockResolvedValueOnce(mockSuccess([[0.1, 0.2, 0.3]]))
+        // Fallback item 1 fails
+        .mockResolvedValueOnce(mockHttpError(400, 'Bad Request'));
+
+      const provider = new OllamaProvider({ model: 'nomic-embed-text', maxRetries: 0 });
+      const result = await provider.embedBatch(['ok text', 'bad text']);
+
+      expect(result.embeddings).toHaveLength(1);
+      expect(result.successIndices).toEqual([0]);
+      expect(result.failedIndices).toEqual([1]);
+      expect(result.errors[1]).toContain('400 Bad Request');
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+
     it('should cache dimensions from first successful response', async () => {
       mockFetch.mockResolvedValueOnce(mockSuccess([[0.1, 0.2, 0.3, 0.4, 0.5]]));
 

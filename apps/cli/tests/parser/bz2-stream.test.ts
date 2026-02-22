@@ -48,12 +48,7 @@ describe('bz2-stream', () => {
     });
 
     it('should throw WikipediaParserError for a non-existent file', async () => {
-      const stream = createBz2ReadStream('/nonexistent/file.xml.bz2');
-      await expect(async () => {
-        for await (const _chunk of stream) {
-          // consume
-        }
-      }).rejects.toThrow();
+      expect(() => createBz2ReadStream('/nonexistent/file.xml.bz2')).toThrow();
     });
   });
 });

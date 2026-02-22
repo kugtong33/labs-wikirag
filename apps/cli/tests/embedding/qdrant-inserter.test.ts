@@ -138,13 +138,42 @@ describe('QdrantInserter', () => {
       const call = mockUpsert.mock.calls[0];
       const points = call[1].points;
 
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
       expect(points).toHaveLength(2);
-      expect(points[0].id).toContain('Test_Article');
-      expect(points[0].id).toContain('Introduction');
-      expect(points[1].id).toContain('Section_1');
+      expect(points[0].id).toMatch(uuidRegex);
+      expect(points[1].id).toMatch(uuidRegex);
 
       // IDs should be unique
       expect(points[0].id).not.toBe(points[1].id);
+    });
+
+    it('should generate deterministic IDs for identical paragraph payloads', async () => {
+      const mockUpsert = vi.fn().mockResolvedValue({ status: 'ok' });
+      mockClient.upsert = mockUpsert;
+
+      const inserter = new QdrantInserter(
+        {
+          collectionName: 'wiki-paragraph-openai-20260210',
+        },
+        mockClient,
+        mockCollectionManager
+      );
+
+      const duplicateParagraph = createMockEmbeddedParagraphs(1)[0];
+
+      for await (const _result of inserter.insertBatches(asyncIterator([[duplicateParagraph]]))) {
+        // consume
+      }
+
+      for await (const _result of inserter.insertBatches(asyncIterator([[duplicateParagraph]]))) {
+        // consume
+      }
+
+      const firstId = mockUpsert.mock.calls[0][1].points[0].id;
+      const secondId = mockUpsert.mock.calls[1][1].points[0].id;
+      expect(firstId).toBe(secondId);
     });
 
     it('should handle empty batches', async () => {

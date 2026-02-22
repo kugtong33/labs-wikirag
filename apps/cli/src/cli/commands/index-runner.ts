@@ -15,6 +15,7 @@ import { parseMultistreamIndex, getStreamBlocks } from '../../parser/multistream
 import { readMultistreamParallel } from '../../parser/parallel-stream-reader.js';
 import { EmbeddingPipeline } from '../../embedding/pipeline.js';
 import { qdrantClient, collectionManager } from '@wikirag/qdrant';
+import { existsSync } from 'node:fs';
 import {
   saveCheckpoint,
   loadCheckpoint,
@@ -269,6 +270,12 @@ async function runIndexingPipeline(
   let paragraphs: AsyncIterable<WikipediaParagraph>;
 
   if (useMultistream) {
+    if (!existsSync(options.indexFile!)) {
+      throw new Error(`Multistream index file not found: ${options.indexFile}`);
+    }
+
+    console.log(`🗂️  Parsing multistream index: ${options.indexFile}`);
+
     // Multistream parallel mode: parse index, filter completed blocks, run parallel
     const allEntries = await parseMultistreamIndex(options.indexFile!);
     let blocks = getStreamBlocks(allEntries);

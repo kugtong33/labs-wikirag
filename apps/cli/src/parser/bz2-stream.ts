@@ -31,6 +31,13 @@ export function createBz2ReadStream(
   options?: { start?: number; end?: number }
 ): NodeJS.ReadableStream {
   try {
+    if (!fs.existsSync(filePath)) {
+      throw new WikipediaParserError(
+        `Bz2 file does not exist: ${filePath}`,
+        'createBz2ReadStream'
+      );
+    }
+
     const readStream = options
       ? fs.createReadStream(filePath, options)
       : fs.createReadStream(filePath);
