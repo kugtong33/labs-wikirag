@@ -739,3 +739,98 @@ pnpm dlx create-turbo@latest
 - Use implementation patterns consistently across all components
 - Respect project structure and boundaries
 - Refer to this document for all architectural questions
+
+---
+
+## Architecture Amendment: Approved Utility Libraries
+
+_Added: 2026-02-22_
+
+### Decision
+
+A set of battle-tested utility packages is approved for use across the monorepo to replace hand-rolled implementations of async concurrency control, rate limiting, memoization, schema validation, and time formatting. These packages complement Ramda (data manipulation) — they do not overlap with it or supersede the Ramda mandate.
+
+### Rationale
+
+- Eliminates reimplementing well-understood patterns (concurrency pools, throttle queues, memoization caches, schema guards)
+- All selected packages are ESM-native or dual CJS+ESM, TypeScript-first, and compatible with the existing `"type": "module"` setup
+- Reduces bug surface in high-value infrastructure paths (embedding rate limiting, multistream concurrency, API validation)
+- Packages are actively maintained with high weekly download counts and minimal dependency trees
+
+### Approved Packages
+
+| Package | Category | Scope | Replaces / Augments |
+|---------|----------|-------|---------------------|
+| `p-limit` | Concurrency | `@wikirag/cli`, `@wikirag/embeddings` | Hand-rolled `Promise.all(batch.map(...))` patterns |
+| `p-queue` | Concurrency + backpressure | `@wikirag/cli`, `@wikirag/embeddings` | Any worker pool needing pause/resume or priority |
+| `p-map` | Concurrent mapping | `@wikirag/cli` | `Promise.all(array.map(...))` with concurrency option |
+| `p-all` | Concurrent execution | `@wikirag/cli` | `Promise.all([...])` with concurrency option |
+| `p-throttle` | Rate limiting | `@wikirag/embeddings` | Manual retry/backoff loops on OpenAI/Ollama calls |
+| `zod` | Schema validation | `@wikirag/core`, `@wikirag/api`, `@wikirag/cli` | Manual `if` guards for CLI options, API request bodies, config objects |
+| `ms` | Duration formatting | `@wikirag/cli`, `@wikirag/api` | Raw `Date.now()` arithmetic and string formatting |
+| `micro-memoize` | Memoization | `@wikirag/core`, `@wikirag/embeddings` | Inline cache maps for repeated pure function calls |
+
+**Deferred (not approved for current epics):**
+- `luxon` — Deferred until timezone-aware date arithmetic is required. Current needs (ISO 8601 timestamps, YYYYMMDD dump dates, progress display) are covered by `ms` + native `Date`/`Intl`.
+
+### Usage Guidelines
+
+**`p-limit` / `p-queue` / `p-map` / `p-all`**
+- Use for all async concurrency control. Replace any `Promise.all(batch.map(...))` pattern where concurrency must be bounded.
+- `p-map` is the default choice for processing arrays with concurrency.
+- `p-queue` when you need dynamic task submission, pause/resume, or priority ordering.
+- `p-limit` when you need a simple concurrency limiter to wrap individual function calls.
+
+**`p-throttle`**
+- Wrap all outbound LLM/embedding API calls (OpenAI, Ollama) to enforce rate limits.
+- Lives in `@wikirag/embeddings` — applied at the provider level, not at call sites.
+
+**`zod`**
+- All external data boundaries: CLI option objects, API request bodies, environment variable parsing, Qdrant response shapes.
+- Export inferred TypeScript types directly from Zod schemas — do not duplicate type definitions.
+- Example: `const IndexOptions = z.object({ ... }); type IndexOptions = z.infer<typeof IndexOptions>;`
+
+**`ms`**
+- Human-readable duration output in CLI progress logs and API response metadata.
+- Do not use for date arithmetic — use native `Date` for that.
+
+**`micro-memoize`**
+- Apply to pure functions called repeatedly with the same arguments: format detection, collection name generation, provider capability checks.
+- Do not memoize functions with side effects or non-deterministic outputs.
+
+### Relationship to Ramda Mandate
+
+These packages operate in a different domain than Ramda:
+- **Ramda** — synchronous data transformation (map, filter, group, compose)
+- **p-\* packages** — async concurrency and flow control
+- **zod** — schema declaration and runtime validation (input boundaries only)
+- **ms / micro-memoize** — formatting and caching utilities
+
+The Ramda mandate remains unchanged. When both Ramda and a utility package could apply (e.g., iterating over an array with async work), prefer `p-map` for the async execution and Ramda for any synchronous data transformation within it.
+
+### Package Placement Summary
+
+```
+apps/cli/
+  dependencies: p-limit, p-queue, p-map, p-all, p-throttle, ms, zod
+
+apps/api/
+  dependencies: zod, ms
+
+packages/embeddings/
+  dependencies: p-throttle, micro-memoize
+
+packages/core/
+  dependencies: zod, micro-memoize
+```
+
+### Known Existing Code to Migrate
+
+When working in these areas, prefer the approved packages over existing hand-rolled patterns:
+
+| Location | Current Pattern | Migrate To |
+|----------|----------------|-----------|
+| `apps/cli/src/parser/parallel-stream-reader.ts` | `Promise.all(batch.map(...))` with manual batching | `p-map` with `concurrency` option |
+| `packages/embeddings` OpenAI client | Manual retry loop | `p-throttle` on API call |
+| `apps/cli/src/cli/commands/index-command.ts` | Manual `if` validation guards | `zod` schema parse |
+| `apps/cli/src/cli/commands/index-runner.ts` | `Date.now()` diff formatting | `ms` |
