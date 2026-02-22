@@ -8,31 +8,68 @@
  */
 
 import { Command } from 'commander';
+import { z } from 'zod';
 import { runIndexing } from './index-runner.js';
 
 /**
- * Indexing command options
+ * Zod schema for index command options — single source of truth for
+ * both runtime validation and the TypeScript type.
  */
-export interface IndexCommandOptions {
+export const IndexCommandOptionsSchema = z.object({
   /** Path to Wikipedia XML dump file */
-  dumpFile: string;
-  /** Embedding strategy (paragraph, chunked, document) */
-  strategy: string;
+  dumpFile: z.string().min(1, 'Dump file path cannot be empty'),
+  /** Embedding strategy */
+  strategy: z.enum(['paragraph', 'chunked', 'document'], {
+    message: 'strategy must be one of: paragraph, chunked, document',
+  }),
   /** Wikipedia dump date (YYYYMMDD format) */
-  dumpDate: string;
-  /** Embedding provider (openai, nomic-embed-text, qwen3-embedding) (optional) */
-  embeddingProvider?: string;
-  /** Embedding model override (provider-specific, optional) */
-  model?: string;
-  /** Batch size for embedding API calls (optional) */
-  batchSize?: number;
-  /** Custom checkpoint file path (optional) */
-  checkpointFile?: string;
-  /** Number of parallel bz2 streams for multistream processing (optional, default: 1) */
-  streams?: number;
-  /** Path to multistream index file (.txt or .txt.bz2) required when --streams > 1 */
-  indexFile?: string;
-}
+  dumpDate: z.string().regex(/^\d{8}$/, 'dumpDate must be YYYYMMDD format (e.g., 20260210)'),
+  /** Embedding provider */
+  embeddingProvider: z
+    .enum(['openai', 'nomic-embed-text', 'qwen3-embedding'], {
+      message: 'Invalid embedding provider. Must be one of: openai, nomic-embed-text, qwen3-embedding',
+    })
+    .optional(),
+  /** Embedding model override */
+  model: z.string().min(1, 'model cannot be empty').optional(),
+  /** Batch size for embedding API calls */
+  batchSize: z
+    .number()
+    .finite({ message: 'Invalid batch size. Must be a finite number' })
+    .int()
+    .min(1, 'Invalid batch size. Must be between 1 and 2048')
+    .max(2048, 'Invalid batch size. Must be between 1 and 2048')
+    .optional(),
+  /** Custom checkpoint file path */
+  checkpointFile: z.string().optional(),
+  /** Number of parallel bz2 streams */
+  streams: z
+    .number()
+    .finite({ message: 'Invalid streams count. Must be a finite number' })
+    .int()
+    .min(1, 'Invalid streams count. Must be at least 1')
+    .optional(),
+  /** Path to multistream index file */
+  indexFile: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if ((data.streams ?? 1) > 1 && !data.indexFile) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: '--index-file is required when --streams > 1',
+      path: ['indexFile'],
+    });
+  }
+  if (data.indexFile && !data.dumpFile.endsWith('.bz2')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: '--index-file can only be used with a .xml.bz2 dump file',
+      path: ['indexFile'],
+    });
+  }
+});
+
+/** Indexing command options — inferred from Zod schema */
+export type IndexCommandOptions = z.infer<typeof IndexCommandOptionsSchema>;
 
 /**
  * Create and configure the index command
@@ -103,78 +140,17 @@ export function createIndexCommand(): Command {
 }
 
 /**
- * Validate command options
+ * Validate command options using the Zod schema.
  *
  * @param options - Command options to validate
- * @throws Error if validation fails
+ * @throws Error with a human-readable message if validation fails
  */
 export function validateOptions(options: IndexCommandOptions): void {
-  // Validate dump file path
-  if (!options.dumpFile || options.dumpFile.trim() === '') {
-    throw new Error('Dump file path cannot be empty');
-  }
-
-  // Validate strategy
-  const validStrategies = ['paragraph', 'chunked', 'document'];
-  if (!validStrategies.includes(options.strategy)) {
-    throw new Error(
-      `Invalid strategy: ${options.strategy}. Must be one of: ${validStrategies.join(', ')}`
-    );
-  }
-
-  // Validate dump date format (YYYYMMDD)
-  const datePattern = /^\d{8}$/;
-  if (!datePattern.test(options.dumpDate)) {
-    throw new Error(
-      `Invalid dump date format: ${options.dumpDate}. Must be YYYYMMDD (e.g., 20260210)`
-    );
-  }
-
-  // Validate batch size
-  if (options.batchSize !== undefined) {
-    if (!Number.isFinite(options.batchSize)) {
-      throw new Error(`Invalid batch size: ${options.batchSize}. Must be a finite number`);
-    }
-
-    if (options.batchSize < 1 || options.batchSize > 2048) {
-      throw new Error(
-        `Invalid batch size: ${options.batchSize}. Must be between 1 and 2048`
-      );
-    }
-  }
-
-  // Validate embedding provider
-  const validProviders = ['openai', 'nomic-embed-text', 'qwen3-embedding'];
-  const provider = options.embeddingProvider ?? 'openai';
-  if (!validProviders.includes(provider)) {
-    throw new Error(
-      `Invalid embedding provider: ${provider}. Must be one of: ${validProviders.join(', ')}`
-    );
-  }
-
-  // Validate model name (basic check)
-  if (options.model && options.model.trim() === '') {
-    throw new Error('Model name cannot be empty');
-  }
-
-  // Validate streams count
-  if (options.streams !== undefined) {
-    if (!Number.isFinite(options.streams)) {
-      throw new Error(`Invalid streams count: ${options.streams}. Must be a finite number`);
-    }
-
-    if (options.streams < 1) {
-      throw new Error(`Invalid streams count: ${options.streams}. Must be at least 1`);
-    }
-  }
-
-  // --streams > 1 requires --index-file
-  if ((options.streams ?? 1) > 1 && !options.indexFile) {
-    throw new Error('--index-file is required when --streams > 1');
-  }
-
-  // --index-file requires bz2 format
-  if (options.indexFile && !options.dumpFile.endsWith('.bz2')) {
-    throw new Error('--index-file can only be used with a .xml.bz2 dump file');
+  const result = IndexCommandOptionsSchema.safeParse(options);
+  if (!result.success) {
+    const message = result.error.issues
+      .map((issue) => issue.message)
+      .join('; ');
+    throw new Error(message);
   }
 }

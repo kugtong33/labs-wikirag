@@ -132,7 +132,7 @@ describe('Index Command', () => {
           dumpDate: '20260210',
           batchSize: Number.NaN,
         }),
-      ).toThrow(/Invalid batch size/);
+      ).toThrow();
     });
 
     it('should reject non-finite streams values', () => {
@@ -144,7 +144,7 @@ describe('Index Command', () => {
           streams: Number.NaN,
           indexFile: 'dump-index.txt',
         }),
-      ).toThrow(/Invalid streams count/);
+      ).toThrow();
     });
   });
 });

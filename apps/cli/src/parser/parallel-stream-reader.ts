@@ -8,6 +8,7 @@
  */
 
 import * as R from 'ramda';
+import pLimit from 'p-limit';
 import { streamXmlPages } from './xml-stream.js';
 import { parseSections } from './section-parser.js';
 import { extractParagraphsFromSection } from './paragraph-extractor.js';
@@ -93,40 +94,23 @@ export async function* readMultistreamParallel(
 
   const opts = R.mergeRight(DEFAULT_OPTIONS, options) as Required<ParserOptions>;
   const safeConcurrency = Math.max(1, concurrency);
+  const limit = pLimit(safeConcurrency);
 
   try {
-    // Launch up to N workers and keep a rolling in-flight window.
-    // This removes batch barriers while preserving deterministic block-order output.
-    const inFlight = new Map<number, Promise<WikipediaParagraph[]>>();
+    // Schedule all blocks through p-limit (respects concurrency cap).
+    // Collect as ordered array of promises so output is deterministic.
+    const blockPromises = blocks.map((block) =>
+      limit(() => parseBlock(dumpFilePath, block, opts))
+    );
 
-    const initialLaunches = Math.min(safeConcurrency, blocks.length);
-    for (let index = 0; index < initialLaunches; index += 1) {
-      inFlight.set(index, parseBlock(dumpFilePath, blocks[index], opts));
-    }
-
-    for (let yieldIndex = 0; yieldIndex < blocks.length; yieldIndex += 1) {
-      const blockParagraphs = await inFlight.get(yieldIndex);
-      if (!blockParagraphs) {
-        throw new WikipediaParserError(
-          `Missing in-flight result for block index ${yieldIndex}`,
-          'readMultistreamParallel',
-        );
-      }
+    for (let i = 0; i < blockPromises.length; i += 1) {
+      const blockParagraphs = await blockPromises[i];
 
       if (onBlockComplete) {
-        await onBlockComplete(blocks[yieldIndex]);
-      }
-
-      const nextLaunch = yieldIndex + safeConcurrency;
-      if (nextLaunch < blocks.length) {
-        inFlight.set(
-          nextLaunch,
-          parseBlock(dumpFilePath, blocks[nextLaunch], opts),
-        );
+        await onBlockComplete(blocks[i]);
       }
 
       yield* blockParagraphs;
-      inFlight.delete(yieldIndex);
     }
   } catch (error) {
     if (error instanceof WikipediaParserError) throw error;

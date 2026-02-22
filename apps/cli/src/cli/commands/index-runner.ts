@@ -16,6 +16,7 @@ import { readMultistreamParallel } from '../../parser/parallel-stream-reader.js'
 import { EmbeddingPipeline } from '../../embedding/pipeline.js';
 import { qdrantClient, collectionManager } from '@wikirag/qdrant';
 import { existsSync } from 'node:fs';
+import ms from 'ms';
 import {
   saveCheckpoint,
   loadCheckpoint,
@@ -84,6 +85,7 @@ function resolveVectorSize(embeddingProvider: string, embeddingModel: string): n
  * @param options - Indexing command options
  */
 export async function runIndexing(options: IndexCommandOptions): Promise<void> {
+  const startTime = Date.now();
   const checkpointFile =
     options.checkpointFile || getCheckpointPath(options.strategy);
   const embeddingProvider = options.embeddingProvider || 'openai';
@@ -125,7 +127,7 @@ export async function runIndexing(options: IndexCommandOptions): Promise<void> {
   };
 
   // Set up graceful shutdown handler
-  const cleanupSignalHandlers = setupGracefulShutdown(state, checkpointFile);
+  const cleanupSignalHandlers = setupGracefulShutdown(state, checkpointFile, startTime);
 
   try {
     // Connect to Qdrant
@@ -151,6 +153,7 @@ export async function runIndexing(options: IndexCommandOptions): Promise<void> {
 
     console.log('\n✅ Indexing completed successfully!');
     console.log(`Total articles processed: ${state.checkpoint.articlesProcessed}`);
+    console.log(`Elapsed time: ${ms(Date.now() - startTime)}`);
   } catch (error) {
     // Save checkpoint on error
     await persistCheckpointProgress(state, checkpointFile, false);
@@ -538,6 +541,7 @@ async function persistCheckpointProgress(
     console.log(`Progress: ${state.checkpoint.articlesProcessed} articles processed`);
   }
 
+
   await saveCheckpoint(state.checkpoint, checkpointFile);
 }
 
@@ -549,7 +553,8 @@ async function persistCheckpointProgress(
  */
 function setupGracefulShutdown(
   state: IndexingState,
-  checkpointFile: string
+  checkpointFile: string,
+  startTime: number
 ): () => void {
   const sigintHandler = async (): Promise<void> => {
     if (state.isShuttingDown) {
@@ -578,6 +583,7 @@ function setupGracefulShutdown(
       console.log('✅ Checkpoint saved successfully');
       console.log(`   Last article ID: ${state.checkpoint.lastArticleId}`);
       console.log(`   Articles processed: ${state.checkpoint.articlesProcessed}`);
+      console.log(`   Elapsed time: ${ms(Date.now() - startTime)}`);
       console.log('\n💡 Resume by running the same command again.\n');
 
       process.exit(130); // SIGINT exit code
