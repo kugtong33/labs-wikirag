@@ -64,6 +64,7 @@ describe('Checkpoint Manager', () => {
       const checkpoint: CheckpointData = {
         lastArticleId: '1',
         articlesProcessed: 1,
+        totalArticles: 1,
         strategy: 'paragraph',
         dumpFile: '/test.xml',
         dumpDate: '20260210',
@@ -106,6 +107,7 @@ describe('Checkpoint Manager', () => {
       const checkpoint: CheckpointData = {
         lastArticleId: '67890',
         articlesProcessed: 500,
+        totalArticles: 500,
         strategy: 'chunked',
         dumpFile: '/path/to/another-dump.xml',
         dumpDate: '20260211',
@@ -173,6 +175,7 @@ describe('Checkpoint Manager', () => {
       const checkpoint: CheckpointData = {
         lastArticleId: '123',
         articlesProcessed: 10,
+        totalArticles: 10,
         strategy: 'paragraph',
         dumpFile: '/path/to/dump.xml',
         dumpDate: '20260210',
@@ -195,6 +198,7 @@ describe('Checkpoint Manager', () => {
       const checkpoint: CheckpointData = {
         lastArticleId: '123',
         articlesProcessed: 10,
+        totalArticles: 10,
         strategy: 'paragraph',
         dumpFile: '/path/to/dump.xml',
         dumpDate: '20260210',
@@ -217,6 +221,7 @@ describe('Checkpoint Manager', () => {
       const checkpoint: CheckpointData = {
         lastArticleId: '123',
         articlesProcessed: 10,
+        totalArticles: 10,
         strategy: 'paragraph',
         dumpFile: '/path/to/dump.xml',
         dumpDate: '20260210',
@@ -239,6 +244,7 @@ describe('Checkpoint Manager', () => {
       const checkpoint: CheckpointData = {
         lastArticleId: '123',
         articlesProcessed: 10,
+        totalArticles: 10,
         strategy: 'paragraph',
         dumpFile: '/path/to/dump.xml',
         dumpDate: '20260210',
@@ -261,12 +267,17 @@ describe('Checkpoint Manager', () => {
   describe('getCheckpointPath', () => {
     it('should generate checkpoint path with strategy', () => {
       const checkpointPath = getCheckpointPath('paragraph');
-      expect(checkpointPath).toBe('indexing-checkpoint.json');
+      expect(checkpointPath).toBe('indexing-checkpoint-paragraph.json');
     });
 
     it('should use custom base directory', () => {
       const checkpointPath = getCheckpointPath('chunked', '/custom/dir');
-      expect(checkpointPath).toBe('/custom/dir/indexing-checkpoint.json');
+      expect(checkpointPath).toBe('/custom/dir/indexing-checkpoint-chunked.json');
+    });
+
+    it('should sanitize strategy for checkpoint path safety', () => {
+      const checkpointPath = getCheckpointPath('chunked/v2');
+      expect(checkpointPath).toBe('indexing-checkpoint-chunked-v2.json');
     });
   });
 
@@ -282,7 +293,7 @@ describe('Checkpoint Manager', () => {
 
       expect(checkpoint.lastArticleId).toBe('0');
       expect(checkpoint.articlesProcessed).toBe(0);
-      expect(checkpoint.totalArticles).toBeUndefined();
+      expect(checkpoint.totalArticles).toBe(0);
       expect(checkpoint.strategy).toBe('paragraph');
       expect(checkpoint.dumpFile).toBe('/test.xml');
       expect(checkpoint.timestamp).toBeDefined();

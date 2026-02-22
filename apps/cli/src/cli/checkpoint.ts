@@ -20,7 +20,7 @@ export interface CheckpointData {
   /** Total articles processed so far */
   articlesProcessed: number;
   /** Total articles in dump (if known) */
-  totalArticles?: number;
+  totalArticles: number;
   /** Embedding strategy used */
   strategy: string;
   /** Path to Wikipedia dump file */
@@ -172,10 +172,14 @@ export function getCheckpointPath(
   strategy: string,
   baseDir?: string
 ): string {
+  const safeStrategy = strategy.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const fileName = `indexing-checkpoint-${safeStrategy}.json`;
+
   if (baseDir) {
-    return path.join(baseDir, 'indexing-checkpoint.json');
+    return path.join(baseDir, fileName);
   }
-  return 'indexing-checkpoint.json';
+
+  return fileName;
 }
 
 /**
@@ -208,7 +212,7 @@ export function createInitialCheckpoint(params: {
   return {
     lastArticleId: '0',
     articlesProcessed: 0,
-    totalArticles: undefined,
+    totalArticles: 0,
     strategy: params.strategy,
     dumpFile: params.dumpFile,
     dumpDate: params.dumpDate,

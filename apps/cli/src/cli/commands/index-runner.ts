@@ -30,8 +30,9 @@ import type { IndexCommandOptions } from './index-command.js';
 interface IndexingState {
   checkpoint: CheckpointData;
   isShuttingDown: boolean;
-  articlesInBatch: number;
-  lastSeenArticleId: string;
+  completedArticlesInBatch: number;
+  currentArticleId: string | null;
+  lastCompletedArticleId: string;
 }
 
 /**
@@ -115,12 +116,13 @@ export async function runIndexing(options: IndexCommandOptions): Promise<void> {
   const state: IndexingState = {
     checkpoint,
     isShuttingDown: false,
-    articlesInBatch: 0,
-    lastSeenArticleId: checkpoint.lastArticleId,
+    completedArticlesInBatch: 0,
+    currentArticleId: null,
+    lastCompletedArticleId: checkpoint.lastArticleId,
   };
 
   // Set up graceful shutdown handler
-  setupGracefulShutdown(state, checkpointFile);
+  const cleanupSignalHandlers = setupGracefulShutdown(state, checkpointFile);
 
   try {
     // Connect to Qdrant
@@ -148,10 +150,12 @@ export async function runIndexing(options: IndexCommandOptions): Promise<void> {
     console.log(`Total articles processed: ${state.checkpoint.articlesProcessed}`);
   } catch (error) {
     // Save checkpoint on error
-    await saveCheckpoint(state.checkpoint, checkpointFile);
+    await persistCheckpointProgress(state, checkpointFile, false);
 
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Indexing failed: ${message}`);
+  } finally {
+    cleanupSignalHandlers();
   }
 }
 
@@ -283,10 +287,9 @@ async function runIndexingPipeline(
 
   await pipeline.runWithParagraphs(filteredParagraphs);
 
-  // Save final checkpoint
-  state.checkpoint.lastArticleId = state.lastSeenArticleId;
-  state.checkpoint.timestamp = new Date().toISOString();
-  await saveCheckpoint(state.checkpoint, checkpointFile);
+  // Flush final completed article and save checkpoint
+  finalizePendingArticleProgress(state);
+  await persistCheckpointProgress(state, checkpointFile, false);
 }
 
 /**
@@ -304,7 +307,7 @@ async function* filterParagraphs(
   state: IndexingState,
   checkpointFile: string
 ): AsyncGenerator<WikipediaParagraph> {
-  if (!isResume) {
+  if (!isResume || lastArticleId === '0') {
     for await (const paragraph of paragraphs) {
       if (state.isShuttingDown) break;
       await handleProgress(paragraph, state, checkpointFile);
@@ -313,21 +316,80 @@ async function* filterParagraphs(
     return;
   }
 
-  // Resuming - skip until we reach the last processed article
-  let foundLastArticle = false;
+  // Resuming - skip all paragraphs up to and including last processed article
+  let resumeScanState: ResumeScanState = {
+    anchorFound: false,
+    skippingAnchorTail: false,
+  };
 
   for await (const paragraph of paragraphs) {
-    if (!foundLastArticle) {
-      if (paragraph.articleId === lastArticleId) {
-        foundLastArticle = true;
-      }
-      continue; // Skip this paragraph
+    const decision = nextResumeDecision(paragraph.articleId, lastArticleId, resumeScanState);
+    resumeScanState = decision.state;
+
+    if (decision.skip) {
+      continue;
     }
 
     if (state.isShuttingDown) break;
     await handleProgress(paragraph, state, checkpointFile);
     yield paragraph;
   }
+
+  if (!resumeScanState.anchorFound) {
+    throw new Error(
+      `Failed to resume: article ID ${lastArticleId} was not found in dump`
+    );
+  }
+}
+
+interface ResumeScanState {
+  anchorFound: boolean;
+  skippingAnchorTail: boolean;
+}
+
+interface ResumeDecision {
+  skip: boolean;
+  state: ResumeScanState;
+}
+
+export function nextResumeDecision(
+  articleId: string,
+  lastArticleId: string,
+  state: ResumeScanState,
+): ResumeDecision {
+  if (lastArticleId === '0') {
+    return { skip: false, state };
+  }
+
+  if (!state.anchorFound) {
+    if (articleId === lastArticleId) {
+      return {
+        skip: true,
+        state: {
+          anchorFound: true,
+          skippingAnchorTail: true,
+        },
+      };
+    }
+
+    return { skip: true, state };
+  }
+
+  if (state.skippingAnchorTail) {
+    if (articleId === lastArticleId) {
+      return { skip: true, state };
+    }
+
+    return {
+      skip: false,
+      state: {
+        anchorFound: true,
+        skippingAnchorTail: false,
+      },
+    };
+  }
+
+  return { skip: false, state };
 }
 
 async function handleProgress(
@@ -335,23 +397,48 @@ async function handleProgress(
   state: IndexingState,
   checkpointFile: string
 ): Promise<void> {
-  if (paragraph.articleId !== state.lastSeenArticleId) {
-    state.lastSeenArticleId = paragraph.articleId;
-    state.articlesInBatch += 1;
+  if (state.currentArticleId === null) {
+    state.currentArticleId = paragraph.articleId;
+    return;
+  }
 
-    if (state.articlesInBatch >= DEFAULT_CHECKPOINT_INTERVAL) {
-      state.checkpoint.lastArticleId = state.lastSeenArticleId;
-      state.checkpoint.articlesProcessed += state.articlesInBatch;
-      state.checkpoint.timestamp = new Date().toISOString();
+  if (paragraph.articleId !== state.currentArticleId) {
+    state.lastCompletedArticleId = state.currentArticleId;
+    state.currentArticleId = paragraph.articleId;
+    state.completedArticlesInBatch += 1;
 
-      console.log(
-        `Progress: ${state.checkpoint.articlesProcessed} articles processed`
-      );
-
-      await saveCheckpoint(state.checkpoint, checkpointFile);
-      state.articlesInBatch = 0;
+    if (state.completedArticlesInBatch >= DEFAULT_CHECKPOINT_INTERVAL) {
+      await persistCheckpointProgress(state, checkpointFile, true);
     }
   }
+}
+
+function finalizePendingArticleProgress(state: IndexingState): void {
+  if (state.currentArticleId && state.currentArticleId !== state.lastCompletedArticleId) {
+    state.lastCompletedArticleId = state.currentArticleId;
+    state.completedArticlesInBatch += 1;
+  }
+}
+
+async function persistCheckpointProgress(
+  state: IndexingState,
+  checkpointFile: string,
+  logProgress: boolean
+): Promise<void> {
+  if (state.completedArticlesInBatch > 0) {
+    state.checkpoint.articlesProcessed += state.completedArticlesInBatch;
+    state.completedArticlesInBatch = 0;
+  }
+
+  state.checkpoint.lastArticleId = state.lastCompletedArticleId;
+  state.checkpoint.totalArticles = state.checkpoint.articlesProcessed;
+  state.checkpoint.timestamp = new Date().toISOString();
+
+  if (logProgress) {
+    console.log(`Progress: ${state.checkpoint.articlesProcessed} articles processed`);
+  }
+
+  await saveCheckpoint(state.checkpoint, checkpointFile);
 }
 
 /**
@@ -363,8 +450,8 @@ async function handleProgress(
 function setupGracefulShutdown(
   state: IndexingState,
   checkpointFile: string
-): void {
-  process.on('SIGINT', async () => {
+): () => void {
+  const sigintHandler = async (): Promise<void> => {
     if (state.isShuttingDown) {
       console.log('\n⚠️  Force quit - checkpoint may not be saved!');
       process.exit(1);
@@ -376,10 +463,7 @@ function setupGracefulShutdown(
 
     try {
       // Update checkpoint with current progress
-      state.checkpoint.articlesProcessed += state.articlesInBatch;
-      state.checkpoint.timestamp = new Date().toISOString();
-
-      await saveCheckpoint(state.checkpoint, checkpointFile);
+      await persistCheckpointProgress(state, checkpointFile, false);
 
       // Best-effort close Qdrant connection
       try {
@@ -404,5 +488,11 @@ function setupGracefulShutdown(
       );
       process.exit(1);
     }
-  });
+  };
+
+  process.on('SIGINT', sigintHandler);
+
+  return () => {
+    process.removeListener('SIGINT', sigintHandler);
+  };
 }
