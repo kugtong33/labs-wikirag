@@ -292,6 +292,8 @@ WikiRAG is a modular RAG exploration platform that uses the full English Wikiped
 - **FR20:** The indexing process can stream through the dump incrementally (not load all into memory)
 - **FR21:** Operators can pause and resume indexing from where it left off
 - **FR22:** Operators can select an embedding strategy via CLI parameters
+- **FR42:** The CLI can accept and stream directly from `.xml.bz2` compressed Wikipedia dump files (e.g., `enwiki-latest-pages-articles-multistream.xml.bz2`) in addition to uncompressed `.xml` files, auto-detecting the format based on file extension
+- **FR43:** The CLI can leverage the bz2 multistream format to decompress and process multiple streams in parallel, increasing indexing throughput
 
 ### Vector Storage & Retrieval
 

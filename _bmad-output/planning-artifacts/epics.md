@@ -52,6 +52,8 @@ FR34: The PWA layer can connect to the API layer for query submission and stream
 FR35: The system can execute Corrective RAG, evaluating and correcting retrieved context before generation
 FR36: The system can execute HyDE, generating hypothetical answer embeddings for improved vague query retrieval
 FR37: The system can execute Self-RAG, iteratively refining retrieval through self-reflection and query rewriting
+FR42: The CLI can accept and stream directly from .xml.bz2 compressed Wikipedia dump files in addition to uncompressed .xml files, auto-detecting format based on file extension
+FR43: The CLI can leverage the bz2 multistream format to decompress and process multiple streams in parallel, increasing indexing throughput
 
 ### NonFunctional Requirements
 
@@ -129,12 +131,14 @@ FR34: Epic 2 - PWA to API connectivity for queries and streaming
 FR35: Epic 5 - Corrective RAG evaluates and corrects retrieved context before generation
 FR36: Epic 6 - HyDE generates hypothetical answer embedding for improved vague query retrieval
 FR37: Epic 7 - Self-RAG iteratively refines retrieval through self-reflection and query rewriting
+FR42: Epic 1 - CLI accepts and streams directly from .xml.bz2 compressed dumps, auto-detecting format
+FR43: Epic 1 - CLI leverages bz2 multistream for parallel decompression and processing
 
 ## Epic List
 
 ### Epic 1: Platform Setup & Data Ingestion
 Operators can deploy WikiRAG infrastructure and index the full English Wikipedia into a searchable vector database.
-**FRs covered:** FR16, FR17, FR18, FR19, FR20, FR21, FR22, FR23, FR24, FR25, FR30, FR32, FR33
+**FRs covered:** FR16, FR17, FR18, FR19, FR20, FR21, FR22, FR23, FR24, FR25, FR30, FR32, FR33, FR42, FR43
 
 ### Epic 1.5: Local Embedding Providers
 Operators can use local LLM embedding models as an alternative to OpenAI, eliminating per-token costs and enabling embedding quality benchmarking across providers.
@@ -255,6 +259,36 @@ So that I can manage the long-running indexing process across multiple sessions.
 **When** I specify the strategy and provider via CLI parameters (e.g., `--strategy paragraph --embedding-provider openai` or `--embedding-provider gpt-oss-14b`)
 **Then** a new collection is created with the appropriate naming convention (e.g., `wiki-paragraph-openai-20260213`)
 **And** indexing proceeds into the new collection using the selected provider
+
+### Story 1.6: Bz2 Multistream Decompression and Format Auto-Detection
+
+As an operator,
+I want the CLI to accept Wikipedia dumps in their native `.xml.bz2` compressed format and decompress multiple bz2 streams in parallel,
+So that I can index directly from the downloaded dump file without manual decompression and benefit from faster throughput via parallel processing.
+
+**Acceptance Criteria:**
+
+**Given** a Wikipedia dump file in `.xml.bz2` format (e.g., `enwiki-latest-pages-articles-multistream.xml.bz2`)
+**When** I pass it to the CLI index command
+**Then** the CLI auto-detects the bz2 format based on file extension
+**And** decompression streams directly into the existing XML parser without writing uncompressed data to disk
+**And** memory usage stays bounded regardless of dump size
+
+**Given** a Wikipedia multistream bz2 dump with its corresponding index file (`enwiki-latest-pages-articles-multistream-index.txt.bz2`)
+**When** the CLI processes the dump
+**Then** it leverages the multistream block boundaries to decompress and process multiple streams in parallel
+**And** each parallel stream feeds independently into the XML parser and embedding pipeline
+**And** the degree of parallelism is configurable via CLI flag (e.g., `--streams <count>`)
+
+**Given** a standard uncompressed `.xml` Wikipedia dump file
+**When** I pass it to the CLI index command
+**Then** the CLI detects the `.xml` extension and processes it directly without any decompression step
+**And** behavior is identical to existing Story 1.3 parsing
+
+**Given** indexing from a bz2 multistream dump is interrupted
+**When** I resume the CLI index command
+**Then** the checkpoint tracks which multistream blocks have been processed
+**And** resume skips already-completed blocks without re-decompressing them
 
 ## Epic 1.5: Local Embedding Providers
 
