@@ -47,6 +47,16 @@ export {
 } from './techniques/naive-rag/index.js';
 export type { NaiveRagConfig } from './techniques/naive-rag/index.js';
 
+// Simple RAG technique
+export {
+  createSimpleRagTechnique,
+  registerSimpleRag,
+  registerTechnique as registerSimpleRagTechnique,
+  QueryExpansionAdapter,
+  SIMPLE_RAG_NAME,
+} from './techniques/simple-rag/index.js';
+export type { SimpleRagConfig } from './techniques/simple-rag/index.js';
+
 // Technique discovery
 export {
   discoverAndRegisterTechniques,

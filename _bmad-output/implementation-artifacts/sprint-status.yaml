@@ -56,7 +56,7 @@ development_status:
   1-5-4-provider-benchmarking-and-quality-comparison: done
   epic-1-5-retrospective: optional
 
-  epic-2: backlog
+  epic-2: done
   2-1-pipeline-adapter-interfaces-and-technique-registry: done
   2-2-naive-rag-technique-implementation: done
   2-3-api-server-with-streaming-inquiry-endpoint: done
@@ -64,10 +64,10 @@ development_status:
   2-5-single-query-streaming-experience: done
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-simple-rag-technique-implementation: ready-for-dev
-  3-2-comparison-api-endpoint-with-parallel-sse-streams: ready-for-dev
-  3-3-comparison-mode-ui-with-side-by-side-display: ready-for-dev
+  epic-3: in-progress
+  3-1-simple-rag-technique-implementation: done
+  3-2-comparison-api-endpoint-with-parallel-sse-streams: done
+  3-3-comparison-mode-ui-with-side-by-side-display: done
   epic-3-retrospective: optional
 
   epic-4: backlog

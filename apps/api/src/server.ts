@@ -14,6 +14,7 @@ import { pinoHttp } from 'pino-http';
 import { healthRouter } from './routes/health.js';
 import { techniquesRouter } from './routes/techniques.js';
 import { inquiryRouter } from './routes/inquiry.js';
+import { comparisonRouter } from './routes/comparison.js';
 import { errorHandler } from './middleware/error-handler.js';
 
 /** Shared Pino logger instance — imported by routes and middleware. */
@@ -62,6 +63,7 @@ export function createApp(): express.Application {
   app.use('/api/health', healthRouter);
   app.use('/api/techniques', techniquesRouter);
   app.use('/api/inquiry', inquiryRouter);
+  app.use('/api/comparison', comparisonRouter);
 
   // RFC 9457 error handler (must be last)
   app.use(errorHandler);
